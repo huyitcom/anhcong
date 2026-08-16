@@ -1,0 +1,6 @@
+{
+  "name": "Thiết Kế Ảnh Cổng Cưới",
+  "description": "Ứng dụng thiết kế ảnh cổng cưới, bảng chào mừng với nhiều mẫu khung ảnh collage, tùy chỉnh chữ nghệ thuật và xuất file in chất lượng cao.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
