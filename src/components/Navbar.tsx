@@ -1,18 +1,16 @@
 import React from 'react';
-import { Download, RotateCcw, Heart, Images } from 'lucide-react';
+import { RotateCcw, Heart, Images, ShoppingBag } from 'lucide-react';
 
 interface NavbarProps {
-  onExportPoster: () => void;
+  onOpenOrderModal: () => void;
   onResetAll: () => void;
   onOpenBatchUpload: () => void;
-  isExporting: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  onExportPoster,
+  onOpenOrderModal,
   onResetAll,
   onOpenBatchUpload,
-  isExporting,
 }) => {
   return (
     <header className="w-full bg-white border-b border-stone-200 sticky top-0 z-40 px-3 sm:px-6 py-2.5 shadow-xs flex items-center justify-between gap-2 sm:gap-4">
@@ -29,7 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </span>
           </h1>
           <p className="text-[11px] text-stone-500 hidden xl:block truncate">
-            Tùy chỉnh khung ảnh, ngày tháng, tên dâu rể & xuất file in
+            Tùy chỉnh khung ảnh, ngày tháng, tên dâu rể & đặt in tại Photobook Vietnam
           </p>
         </div>
       </div>
@@ -55,16 +53,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
 
         <button
-          onClick={onExportPoster}
-          disabled={isExporting}
-          className="flex items-center gap-1.5 bg-sky-500 hover:bg-sky-600 active:bg-sky-700 text-white text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-xl shadow-xs hover:shadow transition disabled:opacity-50"
+          onClick={onOpenOrderModal}
+          className="flex items-center gap-1.5 bg-sky-500 hover:bg-sky-600 active:bg-sky-700 text-white text-xs sm:text-sm font-semibold px-3.5 sm:px-4 py-2 rounded-xl shadow-xs hover:shadow transition"
         >
-          {isExporting ? (
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : (
-            <Download className="w-4 h-4" />
-          )}
-          <span>Tải File In PNG</span>
+          <ShoppingBag className="w-4 h-4" />
+          <span>Đặt In</span>
         </button>
 
         <button

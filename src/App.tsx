@@ -16,8 +16,8 @@ import { PosterCanvas } from './components/PosterCanvas';
 import { EditorSidebar } from './components/EditorSidebar';
 import { PhotoCropModal } from './components/PhotoCropModal';
 import { BatchUploadModal } from './components/BatchUploadModal';
-import { toPng } from 'html-to-image';
-import confetti from 'canvas-confetti';
+import { OrderPrintModal } from './components/OrderPrintModal';
+import { toJpeg } from 'html-to-image';
 
 export default function App() {
   const [templateId, setTemplateId] = useState<TemplateId>('classic-10');
@@ -42,7 +42,7 @@ export default function App() {
 
   // Modals
   const [isBatchUploadOpen, setIsBatchUploadOpen] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
   const posterRef = useRef<HTMLDivElement>(null);
 
@@ -127,32 +127,53 @@ export default function App() {
     });
   };
 
-  // Export High Quality PNG
-  const handleExportPoster = async () => {
-    if (!posterRef.current) return;
+  // Standard 300 DPI Print Dimensions (7087 x 10630 for 60x90cm)
+  const getPrintDimensions = (aspectRatio: string) => {
+    switch (aspectRatio) {
+      case '2:3': // 60 x 90 cm at 300 DPI (7087 x 10630 px)
+        return { width: 7087, height: 10630 };
+      case '3:4': // 50 x 75 cm at 300 DPI
+        return { width: 5906, height: 7874 };
+      case '1:1': // 90 x 90 cm at 300 DPI
+        return { width: 7087, height: 7087 };
+      case '9:16': // 60 x 106 cm at 300 DPI
+        return { width: 7087, height: 12600 };
+      default:
+        return { width: 7087, height: 10630 };
+    }
+  };
+
+  // Get Canvas Image Data URL for Order Email Submission (High-Resolution 300DPI JPEG)
+  const handleGetDesignDataUrl = async (): Promise<string | null> => {
+    if (!posterRef.current) return null;
     try {
-      setIsExporting(true);
-      const dataUrl = await toPng(posterRef.current, {
-        quality: 0.98,
-        pixelRatio: 3, // Ultra crisp resolution!
-      });
+      const { width: targetWidth, height: targetHeight } = getPrintDimensions(posterSettings.aspectRatio);
+      const elemWidth = posterRef.current.offsetWidth || 560;
+      const pixelRatio = targetWidth / elemWidth;
 
-      const fileName = `Anh_Cong_Cuoi_${textConfig.groomName || 'TuanAnh'}_${textConfig.brideName || 'BaoNgoc'}.png`;
-      const link = document.createElement('a');
-      link.download = fileName;
-      link.href = dataUrl;
-      link.click();
-
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
+      // Use exact 300 DPI dimensions with JPEG. Quality 0.90 keeps the file size reasonable for email.
+      const dataUrl = await toJpeg(posterRef.current, {
+        canvasWidth: targetWidth,
+        canvasHeight: targetHeight,
+        pixelRatio: pixelRatio,
+        quality: 0.90,
+        backgroundColor: posterSettings.bgColor || '#ffffff',
+        cacheBust: true,
       });
-    } catch (error) {
-      console.error('Error exporting image:', error);
-      alert('Đã xảy ra lỗi khi tạo file ảnh. Vui lòng thử lại!');
-    } finally {
-      setIsExporting(false);
+      return dataUrl;
+    } catch (err) {
+      console.error('Failed to capture high-res canvas as JPEG for order email:', err);
+      try {
+        const fallbackRatio = 4;
+        return await toJpeg(posterRef.current, {
+          pixelRatio: fallbackRatio,
+          quality: 0.90,
+          backgroundColor: posterSettings.bgColor || '#ffffff',
+        });
+      } catch (fallbackErr) {
+        console.error('Fallback export also failed:', fallbackErr);
+        return null;
+      }
     }
   };
 
@@ -169,10 +190,9 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-stone-100 font-sans text-stone-900 selection:bg-sky-200 selection:text-sky-900">
       {/* Top Navbar */}
       <Navbar
-        onExportPoster={handleExportPoster}
+        onOpenOrderModal={() => setIsOrderModalOpen(true)}
         onResetAll={handleResetAll}
         onOpenBatchUpload={() => setIsBatchUploadOpen(true)}
-        isExporting={isExporting}
       />
 
       {/* Main App Layout: Left Workspace + Right Control Panel */}
@@ -225,6 +245,14 @@ export default function App() {
         onClose={() => setIsBatchUploadOpen(false)}
         onApplyPhotos={handleApplyBatchPhotos}
         currentSlotsCount={slots.length}
+      />
+
+      <OrderPrintModal
+        isOpen={isOrderModalOpen}
+        onClose={() => setIsOrderModalOpen(false)}
+        textConfig={textConfig}
+        posterSettings={posterSettings}
+        onGetDesignDataUrl={handleGetDesignDataUrl}
       />
     </div>
   );
