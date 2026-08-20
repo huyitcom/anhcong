@@ -1,5 +1,5 @@
 import React from 'react';
-import { RotateCcw, Heart, Images, ShoppingBag } from 'lucide-react';
+import { RotateCcw, Images, ShoppingBag } from 'lucide-react';
 
 interface NavbarProps {
   onOpenOrderModal: () => void;
@@ -14,35 +14,39 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   return (
     <header className="w-full bg-white border-b border-stone-200 sticky top-0 z-40 px-3 sm:px-6 py-2.5 shadow-xs flex items-center justify-between gap-2 sm:gap-4">
-      {/* Brand Title (Left) */}
-      <div className="flex items-center gap-2.5 min-w-0">
-        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-sky-600 via-sky-500 to-cyan-400 text-white flex items-center justify-center shadow-xs shrink-0">
-          <Heart className="w-4 h-4 sm:w-5 sm:h-5 fill-white" />
-        </div>
-        <div className="min-w-0">
-          <h1 className="font-serif font-bold text-stone-900 text-sm sm:text-base leading-tight flex items-center gap-2 truncate">
+      {/* Left: Photobook Vietnam Logo */}
+      <div className="flex items-center shrink-0">
+        <a
+          href="https://photobookvietnam.net"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center hover:opacity-90 transition"
+        >
+          <img
+            src="https://www.photobookvietnam.net/images/logo_reve.png"
+            alt="Photobook Vietnam"
+            className="h-6 sm:h-7 md:h-8 w-auto object-contain max-w-[140px] sm:max-w-[190px]"
+            referrerPolicy="no-referrer"
+          />
+        </a>
+      </div>
+
+      {/* Center: Title & Subtitle */}
+      <div className="flex items-center justify-center text-center min-w-0">
+        <div className="min-w-0 text-center">
+          <h1 className="font-serif font-bold text-stone-900 text-sm sm:text-base leading-tight flex items-center justify-center gap-1.5 sm:gap-2 truncate">
             <span>Thiết Kế Ảnh Cổng Cưới</span>
-            <span className="text-[10px] font-sans font-semibold bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full hidden md:inline-block">
-              Save The Date
+            <span className="text-[10px] font-sans font-bold bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full inline-block uppercase tracking-wider">
+              MIỄN PHÍ
             </span>
           </h1>
-          <p className="text-[11px] text-stone-500 hidden xl:block truncate">
-            Tùy chỉnh khung ảnh, ngày tháng, tên dâu rể & đặt in tại Photobook Vietnam
+          <p className="text-[11px] text-stone-500 hidden sm:block truncate">
+            Một sản phẩm của Photobook Vietnam
           </p>
         </div>
       </div>
 
-      {/* Center Logo */}
-      <div className="flex items-center justify-center shrink-0 px-2">
-        <img
-          src="https://www.photobookvietnam.net/images/logo_reve.png"
-          alt="Photobook Vietnam"
-          className="h-6 sm:h-7 md:h-8 w-auto object-contain max-w-[140px] sm:max-w-[200px]"
-          referrerPolicy="no-referrer"
-        />
-      </div>
-
-      {/* Action Buttons (Right) */}
+      {/* Right: Action Buttons */}
       <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
         <button
           onClick={onOpenBatchUpload}
