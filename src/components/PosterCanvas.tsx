@@ -217,16 +217,18 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
   };
 
   return (
-    <div className="w-full flex justify-center items-center py-4 px-2">
+    <div className="w-full flex justify-center items-start py-1 sm:py-2 px-2">
       <div
         id="poster-root"
         ref={posterRef}
         className="relative bg-white shadow-2xl transition-all duration-300 overflow-hidden flex flex-col"
         style={{
           width: '100%',
-          maxWidth: '560px',
+          maxWidth: posterSettings.aspectRatio === '3:2' ? '820px' : '560px',
           aspectRatio:
-            posterSettings.aspectRatio === '2:3'
+            posterSettings.aspectRatio === '3:2'
+              ? '3 / 2'
+              : posterSettings.aspectRatio === '2:3'
               ? '2 / 3'
               : posterSettings.aspectRatio === '3:4'
               ? '3 / 4'
@@ -650,6 +652,503 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
                 className="text-xs sm:text-sm font-medium tracking-[0.3em] text-stone-700 mt-0.5"
               >
                 {textConfig.dateText ? textConfig.dateText.replace(/\n/g, ' / ') : '15 / 05 / 2025'}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Layout Template 5: Hero 13-Mosaic (Top Large Hero + 4x3 Grid + Bottom Love Trip Typography) */}
+        {templateId === 'hero-mosaic-13' && (
+          <div className="w-full h-full flex flex-col justify-between overflow-hidden" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Top Hero Featured Photo (approx 42% height) */}
+            <div className="w-full h-[42%] min-h-0">
+              {renderSlot(0, 'w-full h-full')}
+            </div>
+
+            {/* Middle 4x3 Grid Wall (12 Photos, approx 42% height) */}
+            <div
+              className="w-full h-[42%] min-h-0 grid grid-cols-4 grid-rows-3"
+              style={{ gap: `${posterSettings.gap}px` }}
+            >
+              {/* Row 1 */}
+              {renderSlot(1, 'w-full h-full')}
+              {renderSlot(2, 'w-full h-full')}
+              {renderSlot(3, 'w-full h-full')}
+              {renderSlot(4, 'w-full h-full')}
+              {/* Row 2 */}
+              {renderSlot(5, 'w-full h-full')}
+              {renderSlot(6, 'w-full h-full')}
+              {renderSlot(7, 'w-full h-full')}
+              {renderSlot(8, 'w-full h-full')}
+              {/* Row 3 */}
+              {renderSlot(9, 'w-full h-full')}
+              {renderSlot(10, 'w-full h-full')}
+              {renderSlot(11, 'w-full h-full')}
+              {renderSlot(12, 'w-full h-full')}
+            </div>
+
+            {/* Bottom Elegant Typography (approx 16% height) */}
+            <div className="w-full h-[16%] min-h-0 flex flex-col justify-center px-4 py-1 select-none">
+              <div className="flex items-center justify-between w-full">
+                {/* Left Side: Tagline + Double Line Names */}
+                <div className="flex flex-col items-start justify-center">
+                  {textConfig.tagline && (
+                    <span
+                      style={{
+                        fontFamily: 'Cormorant Garamond, Georgia, serif',
+                        fontSize: '11px',
+                        letterSpacing: '1.5px',
+                        color: textConfig.taglineColor || '#57534e',
+                      }}
+                      className="italic font-light mb-0.5"
+                    >
+                      {textConfig.tagline}
+                    </span>
+                  )}
+                  <div className="flex flex-col">
+                    <span
+                      style={{
+                        fontFamily: textConfig.namesFont || 'Cinzel, Bodoni Moda, serif',
+                        fontSize: `${Math.max(16, Math.min(24, textConfig.namesFontSize))}px`,
+                        color: textConfig.namesColor || '#1c1917',
+                        letterSpacing: '3px',
+                      }}
+                      className="font-normal uppercase tracking-[0.2em] leading-tight"
+                    >
+                      {textConfig.groomName || 'ANH & THAO'}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: textConfig.namesFont || 'Cinzel, Bodoni Moda, serif',
+                        fontSize: `${Math.max(16, Math.min(24, textConfig.namesFontSize))}px`,
+                        color: textConfig.namesColor || '#1c1917',
+                        letterSpacing: '3px',
+                      }}
+                      className="font-normal uppercase tracking-[0.2em] leading-tight"
+                    >
+                      {textConfig.brideName || 'MINH TÂM'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right Side: Love Trip Calligraphy */}
+                <div className="flex flex-col items-center justify-center pl-2">
+                  <div className="flex flex-col items-end leading-none">
+                    <span
+                      style={{
+                        fontFamily: 'Great Vibes, cursive',
+                        fontSize: '36px',
+                        color: textConfig.namesColor || '#1c1917',
+                        lineHeight: 0.8,
+                      }}
+                      className="italic font-normal transform -rotate-6 mr-3"
+                    >
+                      Love
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: 'Great Vibes, cursive',
+                        fontSize: '42px',
+                        color: textConfig.namesColor || '#1c1917',
+                        lineHeight: 0.85,
+                      }}
+                      className="italic font-normal transform -rotate-3"
+                    >
+                      Trip
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Layout Template 6: Editorial 5 (Korean Magazine Layout with Integrated Typography) */}
+        {templateId === 'editorial-5' && (
+          <div className="w-full h-full flex overflow-hidden" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Left Column (58% width): Top Tall Hero with Typography + Bottom Photo */}
+            <div className="w-[58%] h-full flex flex-col justify-between" style={{ gap: `${posterSettings.gap}px` }}>
+              {/* Top Tall Hero Slot (62% height) with Header Typography Overlay */}
+              <div className="w-full h-[62%] min-h-0 relative">
+                {renderSlot(0, 'w-full h-full')}
+                {/* Elegant Top Overlay Typography */}
+                <div className="absolute top-0 inset-x-0 p-3 pt-3.5 bg-gradient-to-b from-stone-900/60 via-stone-900/20 to-transparent pointer-events-none z-10 text-white select-none">
+                  <div className="flex items-start justify-between w-full">
+                    <div className="flex flex-col">
+                      {textConfig.tagline && (
+                        <span
+                          style={{
+                            fontFamily: 'Cormorant Garamond, Georgia, serif',
+                            fontSize: '10px',
+                            letterSpacing: '1.5px',
+                          }}
+                          className="italic font-light text-white/90 drop-shadow-xs mb-0.5"
+                        >
+                          {textConfig.tagline}
+                        </span>
+                      )}
+                      <span
+                        style={{
+                          fontFamily: textConfig.namesFont || 'Cinzel, Bodoni Moda, serif',
+                          fontSize: '15px',
+                          letterSpacing: '2.5px',
+                        }}
+                        className="font-normal uppercase tracking-[0.2em] text-white drop-shadow-md leading-tight"
+                      >
+                        {textConfig.groomName || 'ANH & THAO'}
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: textConfig.namesFont || 'Cinzel, Bodoni Moda, serif',
+                          fontSize: '15px',
+                          letterSpacing: '2.5px',
+                        }}
+                        className="font-normal uppercase tracking-[0.2em] text-white drop-shadow-md leading-tight"
+                      >
+                        {textConfig.brideName || 'MINH TÂM'}
+                      </span>
+                    </div>
+
+                    {/* Script Love Trip */}
+                    <div className="flex flex-col items-end leading-none pr-1">
+                      <span
+                        style={{
+                          fontFamily: 'Great Vibes, cursive',
+                          fontSize: '30px',
+                          lineHeight: 0.8,
+                        }}
+                        className="italic font-normal text-white drop-shadow-md transform -rotate-6 mr-2"
+                      >
+                        Love
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: 'Great Vibes, cursive',
+                          fontSize: '34px',
+                          lineHeight: 0.85,
+                        }}
+                        className="italic font-normal text-white drop-shadow-md transform -rotate-3"
+                      >
+                        Trip
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Horizontal Photo (38% height) */}
+              <div className="w-full h-[38%] min-h-0">
+                {renderSlot(1, 'w-full h-full')}
+              </div>
+            </div>
+
+            {/* Right Column (42% width): 3 Vertically Stacked Photos */}
+            <div className="w-[42%] h-full flex flex-col justify-between" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-full h-[33.33%] min-h-0">
+                {renderSlot(2, 'w-full h-full')}
+              </div>
+              <div className="w-full h-[33.33%] min-h-0">
+                {renderSlot(3, 'w-full h-full')}
+              </div>
+              <div className="w-full h-[33.33%] min-h-0">
+                {renderSlot(4, 'w-full h-full')}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Layout Template 7: Landscape Trio 10 (2 Large Heroes on Sides + 2x4 Middle Grid + Overlay Typography) */}
+        {templateId === 'landscape-trio-10' && (
+          <div className="w-full h-full flex overflow-hidden" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Left Hero Column (~32% width) with Top Typography Overlay */}
+            <div className="w-[32%] h-full relative min-h-0">
+              {renderSlot(0, 'w-full h-full')}
+              <div className="absolute top-0 inset-x-0 p-3 pt-3.5 bg-gradient-to-b from-stone-900/70 via-stone-900/30 to-transparent pointer-events-none z-10 text-white select-none">
+                <div className="flex flex-col">
+                  <span
+                    style={{
+                      fontFamily: textConfig.namesFont || 'Cinzel, Bodoni Moda, serif',
+                      fontSize: '13px',
+                      letterSpacing: '2px',
+                    }}
+                    className="font-normal uppercase text-white drop-shadow-md leading-tight mb-1"
+                  >
+                    {textConfig.groomName || 'PHUONG PHI'} & {textConfig.brideName || 'HUU PHUOC'}
+                  </span>
+                  <div className="text-[9px] text-white/90 font-light drop-shadow-xs leading-relaxed max-w-[95%]">
+                    <span>SOMETIMES WHEN I LOOK INTO </span>
+                    <span style={{ fontFamily: 'Great Vibes, cursive', fontSize: '15px' }} className="italic font-normal">your eyes,</span>
+                    <div>I PRETEND YOU'RE MINE ALL THE DAMN TIME</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Middle 2x4 Grid (~34% width, 8 photos) */}
+            <div
+              className="w-[34%] h-full grid grid-cols-2 grid-rows-4 min-h-0"
+              style={{ gap: `${posterSettings.gap}px` }}
+            >
+              {renderSlot(1, 'w-full h-full')}
+              {renderSlot(2, 'w-full h-full')}
+              {renderSlot(3, 'w-full h-full')}
+              {renderSlot(4, 'w-full h-full')}
+              {renderSlot(5, 'w-full h-full')}
+              {renderSlot(6, 'w-full h-full')}
+              {renderSlot(7, 'w-full h-full')}
+              {renderSlot(8, 'w-full h-full')}
+            </div>
+
+            {/* Right Hero Column (~34% width) */}
+            <div className="w-[34%] h-full min-h-0">
+              {renderSlot(9, 'w-full h-full')}
+            </div>
+          </div>
+        )}
+
+        {/* Layout Template 8: Landscape Duo 6 (2 Left Stacked Photos + Right Typography & 2x2 Grid) */}
+        {templateId === 'landscape-duo-6' && (
+          <div className="w-full h-full flex overflow-hidden" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Left Column (~46% width): 2 Stacked Photos */}
+            <div className="w-[46%] h-full flex flex-col justify-between min-h-0" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-full h-[42%] min-h-0">
+                {renderSlot(0, 'w-full h-full')}
+              </div>
+              <div className="w-full h-[58%] min-h-0">
+                {renderSlot(1, 'w-full h-full')}
+              </div>
+            </div>
+
+            {/* Right Column (~54% width): Top Typography + Bottom 2x2 Grid */}
+            <div className="w-[54%] h-full flex flex-col justify-between min-h-0" style={{ gap: `${posterSettings.gap}px` }}>
+              {/* Top Typography Header */}
+              <div className="w-full h-[34%] min-h-0 flex flex-col items-center justify-center text-center px-2 py-1 select-none">
+                <div className="flex flex-col items-center leading-tight">
+                  <span
+                    style={{
+                      fontFamily: textConfig.namesFont || 'Cinzel, Bodoni Moda, serif',
+                      fontSize: '18px',
+                      color: textConfig.namesColor || '#1c1917',
+                      letterSpacing: '4px',
+                    }}
+                    className="font-light uppercase tracking-[0.25em]"
+                  >
+                    {textConfig.groomName || 'QUYNH CHI'}
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: 'Great Vibes, cursive',
+                      fontSize: '18px',
+                      color: textConfig.namesColor || '#1c1917',
+                      lineHeight: 1,
+                    }}
+                    className="my-[-2px] italic"
+                  >
+                    &
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: textConfig.namesFont || 'Cinzel, Bodoni Moda, serif',
+                      fontSize: '18px',
+                      color: textConfig.namesColor || '#1c1917',
+                      letterSpacing: '4px',
+                    }}
+                    className="font-light uppercase tracking-[0.25em]"
+                  >
+                    {textConfig.brideName || 'NGOC HUNG'}
+                  </span>
+                </div>
+
+                {/* You make my heart happy */}
+                <div className="flex flex-col items-center mt-1 text-stone-700">
+                  <span
+                    style={{
+                      fontFamily: 'Bodoni Moda, Cormorant Garamond, serif',
+                      fontSize: '24px',
+                      fontStyle: 'italic',
+                      lineHeight: 1,
+                    }}
+                    className="font-normal"
+                  >
+                    You
+                  </span>
+                  <div className="flex items-center gap-1 leading-none -mt-1">
+                    <span
+                      style={{
+                        fontFamily: 'Bodoni Moda, Cormorant Garamond, serif',
+                        fontSize: '17px',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      my
+                    </span>
+                    <span className="text-[8px] tracking-[2px] uppercase font-bold text-stone-500">
+                      MAKE HEART
+                    </span>
+                  </div>
+                  <span
+                    style={{
+                      fontFamily: 'Bodoni Moda, serif',
+                      fontSize: '16px',
+                      letterSpacing: '3px',
+                    }}
+                    className="font-normal uppercase italic tracking-[0.2em] -mt-0.5"
+                  >
+                    HAPPY
+                  </span>
+                </div>
+              </div>
+
+              {/* Bottom 2x2 Grid (4 photos) */}
+              <div
+                className="w-full h-[66%] min-h-0 grid grid-cols-2 grid-rows-2"
+                style={{ gap: `${posterSettings.gap}px` }}
+              >
+                {renderSlot(2, 'w-full h-full')}
+                {renderSlot(3, 'w-full h-full')}
+                {renderSlot(4, 'w-full h-full')}
+                {renderSlot(5, 'w-full h-full')}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Layout Template 9: Landscape Story 8 (Left Big Hero with Header + Right 2x4 Grid with Heart Badge) */}
+        {templateId === 'landscape-story-8' && (
+          <div className="w-full h-full flex overflow-hidden" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Left Column (~63% width): Top Typography + Bottom Big Hero Photo */}
+            <div className="w-[63%] h-full flex flex-col justify-between min-h-0" style={{ gap: `${posterSettings.gap}px` }}>
+              {/* Top Typography Header */}
+              <div className="w-full h-[18%] min-h-0 flex flex-col items-start justify-center px-4 py-1 select-none">
+                <span
+                  style={{
+                    fontFamily: textConfig.namesFont || 'Cinzel, Bodoni Moda, serif',
+                    fontSize: '18px',
+                    color: textConfig.namesColor || '#1c1917',
+                    letterSpacing: '4px',
+                  }}
+                  className="font-normal uppercase tracking-[0.25em]"
+                >
+                  {textConfig.groomName || 'GIA BAO'} - {textConfig.brideName || 'TU ANH'}
+                </span>
+                <div className="flex items-center gap-3 mt-0.5">
+                  <span
+                    style={{
+                      fontFamily: 'Alex Brush, Great Vibes, cursive',
+                      fontSize: '26px',
+                      color: textConfig.namesColor || '#1c1917',
+                    }}
+                    className="italic font-normal leading-none"
+                  >
+                    Enjoy the now
+                  </span>
+                  <span className="text-[9px] tracking-[2.5px] uppercase font-semibold text-stone-500">
+                    FOCUS ON YOU
+                  </span>
+                </div>
+              </div>
+
+              {/* Bottom Big Hero Photo */}
+              <div className="w-full h-[82%] min-h-0">
+                {renderSlot(0, 'w-full h-full')}
+              </div>
+            </div>
+
+            {/* Right Column (~37% width): 2x4 Grid with 7 Photos and 1 Love Forever Badge */}
+            <div
+              className="w-[37%] h-full grid grid-cols-2 grid-rows-4 min-h-0"
+              style={{ gap: `${posterSettings.gap}px` }}
+            >
+              {renderSlot(1, 'w-full h-full')}
+              {renderSlot(2, 'w-full h-full')}
+              {renderSlot(3, 'w-full h-full')}
+              {renderSlot(4, 'w-full h-full')}
+              {renderSlot(5, 'w-full h-full')}
+              {renderSlot(6, 'w-full h-full')}
+
+              {/* Row 4: Left Cell Heart Emblem Badge */}
+              <div className="w-full h-full bg-white flex flex-col items-center justify-center p-2 rounded-xs select-none shadow-2xs border border-stone-100">
+                <svg width="42" height="38" viewBox="0 0 50 45" fill="none" className="text-red-500 drop-shadow-xs">
+                  <path
+                    d="M25 40 C25 40 5 26 5 14 C5 7 10 3 16 3 C20 3 23.5 6 25 9 C26.5 6 30 3 34 3 C40 3 45 7 45 14 C45 26 25 40 25 40 Z"
+                    stroke="#ef4444"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path d="M12 16 C18 10 32 10 38 16" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round" />
+                  <path d="M10 20 C18 16 32 16 40 20" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round" />
+                  <path d="M14 26 C20 23 30 23 36 26" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round" />
+                  <path d="M18 31 C22 29 28 29 32 31" stroke="#ef4444" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+                <span
+                  style={{ fontFamily: 'Bodoni Moda, serif', fontSize: '11px', letterSpacing: '1px' }}
+                  className="text-stone-700 font-medium tracking-wider mt-1.5"
+                >
+                  Love forever
+                </span>
+              </div>
+
+              {/* Row 4: Right Cell Photo */}
+              {renderSlot(7, 'w-full h-full')}
+            </div>
+          </div>
+        )}
+
+        {/* Layout Template 10: Landscape London 11 (Panorama Magazine Collage with Center Love Trip) */}
+        {templateId === 'landscape-london-11' && (
+          <div className="w-full h-full flex overflow-hidden" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Left Column (~30% width): Top, Mid (2 split), Bottom */}
+            <div className="w-[30%] h-full flex flex-col justify-between min-h-0" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-full h-[33%] min-h-0">
+                {renderSlot(0, 'w-full h-full')}
+              </div>
+              <div className="w-full h-[34%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+                <div className="w-1/2 h-full min-h-0">{renderSlot(1, 'w-full h-full')}</div>
+                <div className="w-1/2 h-full min-h-0">{renderSlot(2, 'w-full h-full')}</div>
+              </div>
+              <div className="w-full h-[33%] min-h-0">
+                {renderSlot(3, 'w-full h-full')}
+              </div>
+            </div>
+
+            {/* Center Column (~30% width): Top, Mid Tall with Love Trip Overlay, Bottom */}
+            <div className="w-[30%] h-full flex flex-col justify-between min-h-0" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-full h-[25%] min-h-0">
+                {renderSlot(4, 'w-full h-full')}
+              </div>
+              <div className="w-full h-[50%] min-h-0 relative">
+                {renderSlot(5, 'w-full h-full')}
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-2 text-white pointer-events-none z-10 select-none drop-shadow-md">
+                  <span style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '12px', letterSpacing: '1px' }} className="italic font-light text-white/90">
+                    it's time for a
+                  </span>
+                  <div className="flex flex-col items-center leading-none -mt-1">
+                    <span style={{ fontFamily: 'Great Vibes, cursive', fontSize: '44px', lineHeight: 0.8 }} className="italic font-normal transform -rotate-6">
+                      Love
+                    </span>
+                    <span style={{ fontFamily: 'Great Vibes, cursive', fontSize: '48px', lineHeight: 0.85 }} className="italic font-normal transform -rotate-3 ml-2">
+                      Trip
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="w-full h-[25%] min-h-0">
+                {renderSlot(6, 'w-full h-full')}
+              </div>
+            </div>
+
+            {/* Right Column (~40% width): Top Wide, Mid (2 split), Bottom Wide */}
+            <div className="w-[40%] h-full flex flex-col justify-between min-h-0" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-full h-[33%] min-h-0">
+                {renderSlot(7, 'w-full h-full')}
+              </div>
+              <div className="w-full h-[34%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+                <div className="w-1/2 h-full min-h-0">{renderSlot(8, 'w-full h-full')}</div>
+                <div className="w-1/2 h-full min-h-0">{renderSlot(9, 'w-full h-full')}</div>
+              </div>
+              <div className="w-full h-[33%] min-h-0">
+                {renderSlot(10, 'w-full h-full')}
               </div>
             </div>
           </div>

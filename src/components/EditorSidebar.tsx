@@ -16,7 +16,9 @@ import {
   Type,
   Palette,
   Check,
+  ChevronRight,
 } from 'lucide-react';
+import { TemplatePickerModal } from './TemplatePickerModal';
 
 interface EditorSidebarProps {
   templateId: TemplateId;
@@ -27,7 +29,7 @@ interface EditorSidebarProps {
   onChangePosterSettings: (updated: PosterSettings) => void;
 }
 
-const TemplateThumbnail: React.FC<{ id: string }> = ({ id }) => {
+export const TemplateThumbnail: React.FC<{ id: string }> = ({ id }) => {
   if (id === 'classic-10') {
     return (
       <div className="w-full h-full bg-stone-50 p-1 flex flex-col gap-[2px]">
@@ -48,6 +50,45 @@ const TemplateThumbnail: React.FC<{ id: string }> = ({ id }) => {
           <div className="bg-stone-200 w-1/3 rounded-sm"></div>
           <div className="bg-stone-200 w-1/3 rounded-sm"></div>
           <div className="bg-stone-200 w-1/3 rounded-sm"></div>
+        </div>
+      </div>
+    );
+  }
+  if (id === 'hero-mosaic-13') {
+    return (
+      <div className="w-full h-full bg-stone-50 p-1 flex flex-col gap-[2px]">
+        {/* Top Hero Photo */}
+        <div className="bg-stone-300 w-full h-[40%] rounded-xs"></div>
+        {/* Middle 4x3 Grid (12 photos) */}
+        <div className="grid grid-cols-4 grid-rows-3 gap-[1.5px] h-[40%]">
+          {Array.from({ length: 12 }).map((_, idx) => (
+            <div key={idx} className="bg-stone-200 rounded-[1px] w-full h-full"></div>
+          ))}
+        </div>
+        {/* Bottom Typography Lines */}
+        <div className="h-[20%] flex flex-col items-center justify-center gap-0.5 px-1">
+          <div className="w-8 h-[2px] bg-stone-300 rounded-full"></div>
+          <div className="w-12 h-[2px] bg-stone-400 rounded-full"></div>
+        </div>
+      </div>
+    );
+  }
+  if (id === 'editorial-5') {
+    return (
+      <div className="w-full h-full bg-stone-50 p-1 flex gap-[2px]">
+        {/* Left Column (2 photos) */}
+        <div className="w-[58%] flex flex-col gap-[2px] h-full">
+          <div className="bg-stone-300 h-[60%] rounded-xs relative p-0.5 flex flex-col justify-start">
+            <div className="w-6 h-[1.5px] bg-white/80 rounded-full mb-0.5"></div>
+            <div className="w-8 h-[1.5px] bg-white/80 rounded-full"></div>
+          </div>
+          <div className="bg-stone-200 h-[40%] rounded-xs"></div>
+        </div>
+        {/* Right Column (3 photos) */}
+        <div className="w-[42%] flex flex-col gap-[2px] h-full">
+          <div className="bg-stone-200 h-1/3 rounded-xs"></div>
+          <div className="bg-stone-200 h-1/3 rounded-xs"></div>
+          <div className="bg-stone-200 h-1/3 rounded-xs"></div>
         </div>
       </div>
     );
@@ -109,6 +150,106 @@ const TemplateThumbnail: React.FC<{ id: string }> = ({ id }) => {
       </div>
     );
   }
+  if (id === 'landscape-trio-10') {
+    return (
+      <div className="w-full h-full bg-stone-50 p-1 flex gap-[2px]">
+        {/* Left Hero */}
+        <div className="w-[32%] h-full bg-stone-300 rounded-xs relative p-0.5">
+          <div className="w-4 h-[1px] bg-white/90 rounded-full"></div>
+        </div>
+        {/* Middle 2x4 Matrix */}
+        <div className="w-[34%] h-full grid grid-cols-2 grid-rows-4 gap-[1px]">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-stone-200 rounded-[1px] w-full h-full"></div>
+          ))}
+        </div>
+        {/* Right Hero */}
+        <div className="w-[34%] h-full bg-stone-300 rounded-xs"></div>
+      </div>
+    );
+  }
+  if (id === 'landscape-duo-6') {
+    return (
+      <div className="w-full h-full bg-stone-50 p-1 flex gap-[2px]">
+        {/* Left 2 stacked photos */}
+        <div className="w-[46%] h-full flex flex-col gap-[2px]">
+          <div className="bg-stone-300 h-[42%] rounded-xs"></div>
+          <div className="bg-stone-200 h-[58%] rounded-xs"></div>
+        </div>
+        {/* Right Typography + 2x2 grid */}
+        <div className="w-[54%] h-full flex flex-col gap-[2px]">
+          <div className="h-[34%] flex flex-col items-center justify-center gap-0.5">
+            <div className="w-6 h-[1.5px] bg-stone-400 rounded-full"></div>
+            <div className="w-4 h-[1px] bg-stone-300 rounded-full"></div>
+          </div>
+          <div className="h-[66%] grid grid-cols-2 grid-rows-2 gap-[1.5px]">
+            <div className="bg-stone-200 rounded-[1px]"></div>
+            <div className="bg-stone-200 rounded-[1px]"></div>
+            <div className="bg-stone-200 rounded-[1px]"></div>
+            <div className="bg-stone-200 rounded-[1px]"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (id === 'landscape-story-8') {
+    return (
+      <div className="w-full h-full bg-stone-50 p-1 flex gap-[2px]">
+        {/* Left Header + Big Hero */}
+        <div className="w-[63%] h-full flex flex-col gap-[2px]">
+          <div className="h-[18%] flex flex-col justify-center px-0.5">
+            <div className="w-8 h-[1.5px] bg-stone-400 rounded-full mb-0.5"></div>
+          </div>
+          <div className="h-[82%] bg-stone-300 rounded-xs"></div>
+        </div>
+        {/* Right 2x4 grid with badge */}
+        <div className="w-[37%] h-full grid grid-cols-2 grid-rows-4 gap-[1px]">
+          <div className="bg-stone-200 rounded-[1px]"></div>
+          <div className="bg-stone-200 rounded-[1px]"></div>
+          <div className="bg-stone-200 rounded-[1px]"></div>
+          <div className="bg-stone-200 rounded-[1px]"></div>
+          <div className="bg-stone-200 rounded-[1px]"></div>
+          <div className="bg-stone-200 rounded-[1px]"></div>
+          <div className="bg-red-50 border border-red-200 flex items-center justify-center rounded-[1px]">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
+          </div>
+          <div className="bg-stone-200 rounded-[1px]"></div>
+        </div>
+      </div>
+    );
+  }
+  if (id === 'landscape-london-11') {
+    return (
+      <div className="w-full h-full bg-stone-50 p-1 flex gap-[2px]">
+        {/* Left Column */}
+        <div className="w-[30%] h-full flex flex-col gap-[1px]">
+          <div className="bg-stone-200 h-[33%] rounded-[1px]"></div>
+          <div className="h-[34%] flex gap-[1px]">
+            <div className="bg-stone-200 w-1/2 rounded-[1px]"></div>
+            <div className="bg-stone-200 w-1/2 rounded-[1px]"></div>
+          </div>
+          <div className="bg-stone-200 h-[33%] rounded-[1px]"></div>
+        </div>
+        {/* Center Column with tall middle */}
+        <div className="w-[30%] h-full flex flex-col gap-[1px]">
+          <div className="bg-stone-200 h-[25%] rounded-[1px]"></div>
+          <div className="bg-stone-300 h-[50%] rounded-[1px] relative flex items-center justify-center">
+            <div className="w-3 h-[1px] bg-white rounded-full"></div>
+          </div>
+          <div className="bg-stone-200 h-[25%] rounded-[1px]"></div>
+        </div>
+        {/* Right Column */}
+        <div className="w-[40%] h-full flex flex-col gap-[1px]">
+          <div className="bg-stone-200 h-[33%] rounded-[1px]"></div>
+          <div className="h-[34%] flex gap-[1px]">
+            <div className="bg-stone-200 w-1/2 rounded-[1px]"></div>
+            <div className="bg-stone-200 w-1/2 rounded-[1px]"></div>
+          </div>
+          <div className="bg-stone-200 h-[33%] rounded-[1px]"></div>
+        </div>
+      </div>
+    );
+  }
   return <div className="w-full h-full bg-stone-100"></div>;
 };
 
@@ -121,6 +262,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
   onChangePosterSettings,
 }) => {
   const [activeTab, setActiveTab] = useState<'text' | 'style'>('text');
+  const [isPickerModalOpen, setIsPickerModalOpen] = useState(false);
 
   const updateText = (key: keyof TextConfig, value: any) => {
     onChangeTextConfig({ ...textConfig, [key]: value });
@@ -130,23 +272,49 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
     onChangePosterSettings({ ...posterSettings, [key]: value });
   };
 
+  // Visible quick-access templates (4 items, ensuring active template is visible)
+  const visibleTemplates = (() => {
+    const firstFour = TEMPLATES.slice(0, 4);
+    const isSelectedInFirstFour = firstFour.some((t) => t.id === templateId);
+    if (isSelectedInFirstFour) {
+      return firstFour;
+    }
+    const currentTmpl = TEMPLATES.find((t) => t.id === templateId);
+    if (currentTmpl) {
+      return [...TEMPLATES.slice(0, 3), currentTmpl];
+    }
+    return firstFour;
+  })();
+
   return (
     <div className="w-full lg:w-96 bg-white border-l border-stone-200 flex flex-col h-full shadow-sm">
       {/* Top row: Layout Templates */}
       <div className="p-3 border-b border-stone-200 bg-stone-50/50">
-        <h3 className="font-semibold text-stone-800 text-[11px] uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
-          <LayoutGrid className="w-3.5 h-3.5 text-sky-500" />
-          Mẫu Layout
-        </h3>
-        <div className="flex gap-2.5 overflow-x-auto pb-1 hide-scrollbar">
-          {TEMPLATES.map((tmpl) => (
+        <div className="flex items-center justify-between mb-2.5">
+          <h3 className="font-semibold text-stone-800 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+            <LayoutGrid className="w-3.5 h-3.5 text-sky-500" />
+            Mẫu Layout
+          </h3>
+          <button
+            onClick={() => setIsPickerModalOpen(true)}
+            className="text-[11px] font-semibold text-sky-600 hover:text-sky-700 hover:underline flex items-center gap-0.5 transition cursor-pointer"
+          >
+            <span>Xem tất cả ({TEMPLATES.length})</span>
+            <ChevronRight className="w-3 h-3" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2.5 overflow-x-auto pb-1 hide-scrollbar min-h-[116px]">
+          {visibleTemplates.map((tmpl) => (
             <button
               key={tmpl.id}
               onClick={() => onChangeTemplate(tmpl.id)}
-              title={tmpl.name}
-              className={`flex-shrink-0 w-20 h-28 rounded-xl border-2 transition overflow-hidden relative group ${
+              title={`${tmpl.name} (${tmpl.slotCount} ảnh)`}
+              className={`flex-shrink-0 rounded-xl border-2 transition overflow-hidden relative group cursor-pointer ${
+                tmpl.aspectRatio === '3:2' ? 'w-28 h-20' : 'w-20 h-28'
+              } ${
                 templateId === tmpl.id
-                  ? 'border-sky-500 ring-2 ring-sky-500/20'
+                  ? 'border-sky-500 ring-2 ring-sky-500/20 shadow-xs'
                   : 'border-stone-200 hover:border-stone-300 bg-white'
               }`}
             >
@@ -158,8 +326,36 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
               )}
             </button>
           ))}
+
+          {/* "Xem thêm" Card Button */}
+          <button
+            onClick={() => setIsPickerModalOpen(true)}
+            className="flex-shrink-0 w-20 h-28 rounded-xl border-2 border-dashed border-stone-300 hover:border-sky-500 bg-stone-50 hover:bg-sky-50/50 flex flex-col items-center justify-center p-2 text-stone-600 hover:text-sky-600 transition group cursor-pointer"
+            title="Xem toàn bộ kho mẫu layout"
+          >
+            <div className="w-8 h-8 rounded-full bg-white group-hover:bg-sky-500 group-hover:text-white border border-stone-200 group-hover:border-sky-500 flex items-center justify-center mb-1.5 transition shadow-2xs">
+              <LayoutGrid className="w-4 h-4" />
+            </div>
+            <span className="text-[11px] font-bold text-center leading-tight">
+              Xem Thêm
+            </span>
+            <span className="text-[9px] text-stone-400 group-hover:text-sky-500 mt-0.5 font-medium">
+              +{TEMPLATES.length - 4} Mẫu
+            </span>
+          </button>
         </div>
       </div>
+
+      {/* Template Picker Popup Modal */}
+      <TemplatePickerModal
+        isOpen={isPickerModalOpen}
+        onClose={() => setIsPickerModalOpen(false)}
+        currentTemplateId={templateId}
+        onSelectTemplate={(id) => {
+          onChangeTemplate(id);
+          setIsPickerModalOpen(false);
+        }}
+      />
 
       {/* Sidebar Navigation Tabs */}
       <div className="grid grid-cols-2 border-b border-stone-200 bg-stone-50/80 p-1">
@@ -421,10 +617,11 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
               </span>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: '2:3', label: '60 x 90 cm' },
+                  { id: '3:2', label: '90 x 60 cm (Ngang)' },
+                  { id: '2:3', label: '60 x 90 cm (Đứng)' },
                   { id: '3:4', label: '50 x 75 cm' },
-                  { id: '1:1', label: '90 x 90 cm' },
-                  { id: '9:16', label: '60 x 120 cm' },
+                  { id: '1:1', label: '90 x 90 cm (Vuông)' },
+                  { id: '9:16', label: '60 x 120 cm (Dọc)' },
                 ].map((ratio) => (
                   <button
                     key={ratio.id}

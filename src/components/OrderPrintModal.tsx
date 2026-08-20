@@ -131,6 +131,7 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
 
   // Map Aspect Ratio to Size String
   const sizeMap: Record<string, string> = {
+    '3:2': '90 x 60 cm (Khổ Ngang Chuẩn)',
     '2:3': '60 x 90 cm (Khổ Đứng Chuẩn)',
     '3:4': '50 x 75 cm (Khổ Đứng Vừa)',
     '1:1': '90 x 90 cm (Khổ Vuông Nghệ Thuật)',

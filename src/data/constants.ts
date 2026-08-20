@@ -10,7 +10,17 @@ export const SAMPLE_WEDDING_PHOTOS = [
   'https://images.unsplash.com/photo-1532712938310-34cb3982ef74?auto=format&fit=crop&w=800&q=80',
   'https://images.unsplash.com/photo-1544078751-58fee2d8a03b?auto=format&fit=crop&w=800&q=80',
   'https://images.unsplash.com/photo-1606800052052-a08af7148866?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=800&q=80'
+  'https://images.unsplash.com/photo-1519225421980-715cb0215aed?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1515934751635-c81c6bc9a2d8?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1537633552985-df8429e8048b?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1524824267900-2fa9cbf7a506?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1587271407850-8d438ca9fdf2?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1591604466107-ec97de577aff?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1509927083803-4bd519298ac4?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=800&q=80',
+  'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=800&q=80'
 ];
 
 export const TEMPLATES: TemplateDefinition[] = [
@@ -19,6 +29,20 @@ export const TEMPLATES: TemplateDefinition[] = [
     name: 'Mẫu 10 Khung Classic (Centered Text)',
     description: '10 khung ảnh bố cục bao quanh cụm chữ trung tâm nghệ thuật',
     slotCount: 10,
+    aspectRatio: '2:3'
+  },
+  {
+    id: 'hero-mosaic-13',
+    name: 'Mẫu 13 Khung - Hero & Mosaic 4x3 (Love Trip)',
+    description: '1 ảnh lớn phía trên, 12 ảnh nhỏ lưới 4x3 ở giữa và cụm chữ nghệ thuật Love Trip sang trọng phía dưới',
+    slotCount: 13,
+    aspectRatio: '2:3'
+  },
+  {
+    id: 'editorial-5',
+    name: 'Mẫu 5 Khung - Tạp Chí Nghệ Thuật (Editorial Love)',
+    description: 'Phong cách bìa tạp chí Hàn Quốc với 2 ảnh bên trái lồng chữ nghệ thuật và 3 ảnh xếp dọc bên phải',
+    slotCount: 5,
     aspectRatio: '2:3'
   },
   {
@@ -41,6 +65,34 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'Bố cục khung ảnh xếp hình trái tim nghệ thuật quanh bức ảnh cưới trung tâm',
     slotCount: 19,
     aspectRatio: '2:3'
+  },
+  {
+    id: 'landscape-trio-10',
+    name: 'Mẫu Ngang 10 Khung - Song Hero & Lưới Giữa (Forest Romance)',
+    description: 'Bố cục ngang 90x60 cm: 2 ảnh chân dung lớn 2 bên, ở giữa là lưới 8 ảnh nhỏ (2x4) kèm chữ nghệ thuật trên ảnh',
+    slotCount: 10,
+    aspectRatio: '3:2'
+  },
+  {
+    id: 'landscape-duo-6',
+    name: 'Mẫu Ngang 6 Khung - Duo Trái & Lưới 2x2 (You Make My Heart Happy)',
+    description: 'Bố cục ngang 90x60 cm: 2 ảnh xếp dọc bên trái, bên phải là cụm chữ thiệp cưới lãng mạn cùng lưới 4 ảnh (2x2)',
+    slotCount: 6,
+    aspectRatio: '3:2'
+  },
+  {
+    id: 'landscape-story-8',
+    name: 'Mẫu Ngang 8 Khung - Big Hero & Lưới Phải (Enjoy The Now)',
+    description: 'Bố cục ngang 90x60 cm: 1 ảnh lớn chiếm 2/3 khung hình bên trái có tiêu đề phía trên, bên phải là lưới 7 ảnh nhỏ cùng huy hiệu trái tim Love forever',
+    slotCount: 8,
+    aspectRatio: '3:2'
+  },
+  {
+    id: 'landscape-london-11',
+    name: 'Mẫu Ngang 11 Khung - Panorama Magazine Collage (London Trip)',
+    description: 'Bố cục ngang 90x60 cm: 11 khung ảnh phong cách tạp chí du lịch lãng mạn, ảnh tháp Big Ben trung tâm lồng chữ Love Trip',
+    slotCount: 11,
+    aspectRatio: '3:2'
   }
 ];
 

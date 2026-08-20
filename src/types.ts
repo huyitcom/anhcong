@@ -38,7 +38,7 @@ export interface TextConfig {
   textUppercase: boolean;
 }
 
-export type AspectRatioType = '2:3' | '3:4' | '1:1' | '9:16';
+export type AspectRatioType = '2:3' | '3:2' | '3:4' | '1:1' | '9:16';
 
 export interface PosterSettings {
   bgColor: string; // hex or preset name
@@ -51,7 +51,17 @@ export interface PosterSettings {
   aspectRatio: AspectRatioType;
 }
 
-export type TemplateId = 'classic-10' | 'asymmetric-6' | 'love-banner-8' | 'heart-mosaic-18';
+export type TemplateId =
+  | 'classic-10'
+  | 'hero-mosaic-13'
+  | 'editorial-5'
+  | 'asymmetric-6'
+  | 'love-banner-8'
+  | 'heart-mosaic-18'
+  | 'landscape-trio-10'
+  | 'landscape-duo-6'
+  | 'landscape-story-8'
+  | 'landscape-london-11';
 
 export interface TemplateDefinition {
   id: TemplateId;

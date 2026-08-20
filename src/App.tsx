@@ -46,18 +46,25 @@ export default function App() {
 
   const posterRef = useRef<HTMLDivElement>(null);
 
-  // Adjust slot count when template changes
+  // Adjust slot count and auto-sync aspect ratio when template changes
   const handleTemplateChange = (newTemplateId: TemplateId) => {
     setTemplateId(newTemplateId);
     const selectedTemplate = TEMPLATES.find((t) => t.id === newTemplateId);
     const targetCount = selectedTemplate ? selectedTemplate.slotCount : 10;
+
+    if (selectedTemplate?.aspectRatio && selectedTemplate.aspectRatio !== posterSettings.aspectRatio) {
+      setPosterSettings((prev) => ({
+        ...prev,
+        aspectRatio: selectedTemplate.aspectRatio,
+      }));
+    }
 
     setSlots((prev) => {
       if (prev.length === targetCount) return prev;
       if (prev.length < targetCount) {
         const added = Array.from({ length: targetCount - prev.length }, (_, i) => ({
           id: `slot-${prev.length + i}`,
-          imageUri: SAMPLE_WEDDING_PHOTOS[prev.length + i] || null,
+          imageUri: SAMPLE_WEDDING_PHOTOS[(prev.length + i) % SAMPLE_WEDDING_PHOTOS.length] || null,
           zoom: 1,
           offsetX: 0,
           offsetY: 0,
@@ -127,9 +134,11 @@ export default function App() {
     });
   };
 
-  // Standard 300 DPI Print Dimensions (7087 x 10630 for 60x90cm)
+  // Standard 300 DPI Print Dimensions (7087 x 10630 for 60x90cm / 10630 x 7087 for 90x60cm landscape)
   const getPrintDimensions = (aspectRatio: string) => {
     switch (aspectRatio) {
+      case '3:2': // 90 x 60 cm at 300 DPI (10630 x 7087 px)
+        return { width: 10630, height: 7087 };
       case '2:3': // 60 x 90 cm at 300 DPI (7087 x 10630 px)
         return { width: 7087, height: 10630 };
       case '3:4': // 50 x 75 cm at 300 DPI
@@ -198,8 +207,8 @@ export default function App() {
       {/* Main App Layout: Left Workspace + Right Control Panel */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Workspace Center Display */}
-        <main className="flex-1 bg-stone-200/60 overflow-y-auto p-4 sm:p-6 lg:p-8 flex items-center justify-center min-h-[500px]">
-          <div className="w-full max-w-2xl flex flex-col items-center">
+        <main className="flex-1 bg-stone-200/60 overflow-y-auto p-4 sm:p-6 flex flex-col items-center justify-start min-h-[500px]">
+          <div className="w-full max-w-4xl flex flex-col items-center">
             <PosterCanvas
               templateId={templateId}
               slots={slots}
@@ -212,7 +221,7 @@ export default function App() {
               posterRef={posterRef}
             />
 
-            <p className="text-xs text-stone-500 mt-3 text-center">
+            <p className="text-xs text-stone-500 mt-4 mb-2 text-center">
               💡 Bấm vào từng khung ảnh để thay đổi hoặc tùy chỉnh vị trí. Dùng menu bên phải để sửa tên dâu rể & ngày cưới.
             </p>
           </div>
