@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { FrameSlot, PosterSettings, TemplateId, TextConfig } from '../types';
 import { PHOTO_FILTERS } from '../data/constants';
 import { Upload, Sliders, Plus } from 'lucide-react';
@@ -11,6 +11,7 @@ interface PosterCanvasProps {
   activeSlotIndex: number | null;
   onSelectSlot: (index: number) => void;
   onSlotImageChange: (index: number, imageUri: string) => void;
+  onUpdateSlot?: (updated: FrameSlot) => void;
   onOpenCropModal: (slot: FrameSlot, index: number) => void;
   posterRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -23,9 +24,100 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
   activeSlotIndex,
   onSelectSlot,
   onSlotImageChange,
+  onUpdateSlot,
   onOpenCropModal,
   posterRef,
 }) => {
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [panningIndex, setPanningIndex] = useState<number | null>(null);
+
+  const slotsRef = useRef(slots);
+  slotsRef.current = slots;
+
+  const onUpdateSlotRef = useRef(onUpdateSlot);
+  onUpdateSlotRef.current = onUpdateSlot;
+
+  const onSelectSlotRef = useRef(onSelectSlot);
+  onSelectSlotRef.current = onSelectSlot;
+
+  const panRef = useRef<{
+    slotIndex: number;
+    startX: number;
+    startY: number;
+    initialOffsetX: number;
+    initialOffsetY: number;
+    containerWidth: number;
+    containerHeight: number;
+    hasMoved: boolean;
+  } | null>(null);
+
+  // Global listener for smooth real-time drag/pan across canvas
+  useEffect(() => {
+    const handleGlobalPointerMove = (e: PointerEvent) => {
+      if (!panRef.current) return;
+      const {
+        slotIndex,
+        startX,
+        startY,
+        initialOffsetX,
+        initialOffsetY,
+        containerWidth,
+        containerHeight,
+      } = panRef.current;
+
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      if (Math.hypot(dx, dy) > 2) {
+        panRef.current.hasMoved = true;
+      }
+
+      if (!panRef.current.hasMoved) return;
+
+      const currentSlot = slotsRef.current[slotIndex];
+      if (!currentSlot || !onUpdateSlotRef.current) return;
+
+      // Dragging down (dy > 0) pulls the photo down -> reveals the top area of the photo (posY decreases towards 0%)
+      // Dragging up (dy < 0) pushes the photo up -> reveals the bottom area of the photo (posY increases towards 100%)
+      // Dragging right (dx > 0) pulls the photo right -> reveals the left area (posX decreases towards 0%)
+      // Dragging left (dx < 0) pushes the photo left -> reveals the right area (posX increases towards 100%)
+      const deltaPctX = -(dx / Math.max(containerWidth, 50)) * 100;
+      const deltaPctY = -(dy / Math.max(containerHeight, 50)) * 100;
+
+      const newOffsetX = Math.max(-50, Math.min(50, Math.round(initialOffsetX + deltaPctX)));
+      const newOffsetY = Math.max(-50, Math.min(50, Math.round(initialOffsetY + deltaPctY)));
+
+      onUpdateSlotRef.current({
+        ...currentSlot,
+        offsetX: newOffsetX,
+        offsetY: newOffsetY,
+      });
+    };
+
+    const handleGlobalPointerUp = () => {
+      if (!panRef.current) return;
+      const { slotIndex, hasMoved } = panRef.current;
+
+      panRef.current = null;
+      setPanningIndex(null);
+
+      // If user merely clicked without dragging, select slot
+      if (!hasMoved) {
+        onSelectSlotRef.current(slotIndex);
+      }
+    };
+
+    window.addEventListener('pointermove', handleGlobalPointerMove);
+    window.addEventListener('pointerup', handleGlobalPointerUp);
+    window.addEventListener('pointercancel', handleGlobalPointerUp);
+
+    return () => {
+      window.removeEventListener('pointermove', handleGlobalPointerMove);
+      window.removeEventListener('pointerup', handleGlobalPointerUp);
+      window.removeEventListener('pointercancel', handleGlobalPointerUp);
+    };
+  }, []);
+
   const getFilterStyle = (filterId: string) => {
     const f = PHOTO_FILTERS.find((item) => item.id === filterId);
     return f ? f.css : 'none';
@@ -44,6 +136,50 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
     }
   };
 
+  // Drop files from computer directly onto slot
+  const handleDropOnSlot = (targetIndex: number, e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragOverIndex(null);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const file = e.dataTransfer.files[0];
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          if (event.target?.result) {
+            onSlotImageChange(targetIndex, event.target.result as string);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+  };
+
+  // Start dragging image inside slot
+  const handleSlotPointerDown = (index: number, e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return; // Only primary mouse button or touch
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('label') || target.closest('input')) {
+      return;
+    }
+
+    const slot = slots[index];
+    if (!slot || !slot.imageUri) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    panRef.current = {
+      slotIndex: index,
+      startX: e.clientX,
+      startY: e.clientY,
+      initialOffsetX: slot.offsetX || 0,
+      initialOffsetY: slot.offsetY || 0,
+      containerWidth: rect.width || 200,
+      containerHeight: rect.height || 200,
+      hasMoved: false,
+    };
+    setPanningIndex(index);
+  };
+
   const renderSlot = (index: number, className: string = '') => {
     const slot = slots[index] || {
       id: `slot-${index}`,
@@ -56,15 +192,36 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
 
     const isFilled = Boolean(slot.imageUri);
     const filterCss = getFilterStyle(slot.filter);
+    const isDragOver = dragOverIndex === index;
+    const isPanningThis = panningIndex === index;
+
+    // Convert -50..50 offset to 0%..100% objectPosition
+    const posX = Math.max(0, Math.min(100, 50 + (slot.offsetX || 0)));
+    const posY = Math.max(0, Math.min(100, 50 + (slot.offsetY || 0)));
 
     return (
       <div
         key={slot.id || index}
-        onClick={() => onSelectSlot(index)}
-        className={`relative group overflow-hidden transition-all duration-200 cursor-pointer ${activeSlotIndex === index ? 'ring-2 ring-sky-500 ring-offset-1' : ''} ${className}`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          if (dragOverIndex !== index) setDragOverIndex(index);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+          setDragOverIndex(null);
+        }}
+        onDrop={(e) => handleDropOnSlot(index, e)}
+        onPointerDown={(e) => handleSlotPointerDown(index, e)}
+        className={`relative group overflow-hidden select-none transition-shadow duration-150 ${
+          activeSlotIndex === index ? 'ring-2 ring-sky-500 ring-offset-1 z-10' : ''
+        } ${isPanningThis ? 'cursor-grabbing ring-2 ring-sky-400' : isFilled ? 'cursor-grab' : 'cursor-pointer'} ${className}`}
         style={{
           borderRadius: `${posterSettings.cornerRadius}px`,
           backgroundColor: '#f5f5f4',
+          touchAction: 'none',
+          userSelect: 'none',
         }}
       >
         <input
@@ -75,40 +232,61 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
           onChange={(e) => handleSingleFileInput(index, e)}
         />
 
+        {/* Drag Over Visual Indicator for Desktop Files */}
+        {isDragOver && (
+          <div className="absolute inset-0 z-40 bg-sky-500/25 border-2 border-dashed border-sky-500 rounded-lg flex flex-col items-center justify-center gap-1.5 p-2 backdrop-blur-2xs animate-in fade-in duration-150 pointer-events-none">
+            <div className="w-9 h-9 rounded-full bg-white text-sky-600 flex items-center justify-center shadow-md animate-bounce">
+              <Upload className="w-5 h-5" />
+            </div>
+            <span className="text-[11px] font-bold text-white bg-sky-600 px-2.5 py-0.5 rounded-full shadow-xs">
+              Thả ảnh vào khung #{index + 1}
+            </span>
+          </div>
+        )}
+
         {isFilled ? (
-          <>
+          <div className="w-full h-full relative overflow-hidden pointer-events-none">
             <img
               src={slot.imageUri!}
               alt={`Frame ${index + 1}`}
-              className="w-full h-full object-cover transition-transform duration-100 pointer-events-none"
+              draggable={false}
+              className="w-full h-full object-cover transition-transform duration-75 pointer-events-none select-none"
               style={{
-                transform: `scale(${slot.zoom}) translate(${slot.offsetX}%, ${slot.offsetY}%) rotate(${slot.rotation || 0}deg)`,
+                objectPosition: `${posX}% ${posY}%`,
+                transform: `scale(${Math.max(1, slot.zoom || 1)}) rotate(${slot.rotation || 0}deg)`,
+                transformOrigin: `${posX}% ${posY}%`,
                 filter: filterCss,
               }}
             />
 
-            {/* Hover Actions Bar */}
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2 p-2">
+            {/* Quick Actions (top right) */}
+            <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-auto">
               <button
+                type="button"
+                onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => {
                   e.stopPropagation();
                   onOpenCropModal(slot, index);
                 }}
-                className="flex items-center gap-1 bg-white/95 hover:bg-white text-stone-900 text-xs font-medium px-2.5 py-1.5 rounded-lg shadow-md transition scale-95 hover:scale-100"
+                className="flex items-center gap-1 bg-white/95 hover:bg-white text-stone-900 text-[11px] font-semibold px-2 py-1.5 rounded-lg shadow-md transition scale-95 hover:scale-100 cursor-pointer backdrop-blur-xs"
+                title="Chỉnh sửa thu phóng & góc xoay"
               >
                 <Sliders className="w-3.5 h-3.5 text-sky-600" />
-                Sửa Ảnh
+                <span>Sửa</span>
               </button>
+
               <label
                 htmlFor={`file-input-${index}`}
+                onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1 bg-stone-900/90 hover:bg-black text-white text-xs font-medium px-2.5 py-1.5 rounded-lg shadow-md transition cursor-pointer scale-95 hover:scale-100"
+                className="flex items-center gap-1 bg-stone-900/90 hover:bg-black text-white text-[11px] font-semibold px-2 py-1.5 rounded-lg shadow-md transition cursor-pointer scale-95 hover:scale-100 backdrop-blur-xs"
+                title="Tải ảnh mới từ thiết bị"
               >
                 <Upload className="w-3.5 h-3.5" />
-                Đổi Ảnh
+                <span>Đổi</span>
               </label>
             </div>
-          </>
+          </div>
         ) : (
           <label
             htmlFor={`file-input-${index}`}
@@ -120,7 +298,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
             <span className="text-[11px] font-medium text-stone-500 text-center">
               Khung #{index + 1}
             </span>
-            <span className="text-[9px] text-stone-400 text-center">Bấm để tải ảnh</span>
+            <span className="text-[9px] text-stone-400 text-center">Kéo thả hoặc bấm để tải ảnh</span>
           </label>
         )}
       </div>

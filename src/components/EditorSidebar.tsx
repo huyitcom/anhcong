@@ -29,224 +29,31 @@ interface EditorSidebarProps {
   onChangePosterSettings: (updated: PosterSettings) => void;
 }
 
-export const TemplateThumbnail: React.FC<{ id: string }> = ({ id }) => {
-  if (id === 'classic-10') {
+const TEMPLATE_THUMBNAIL_IMAGES: Record<string, string> = {
+  'classic-10': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-1.jpg',
+  'hero-mosaic-13': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-2.jpg',
+  'editorial-5': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-3.jpg',
+  'asymmetric-6': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-4.jpg',
+  'love-banner-8': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-5.jpg',
+  'heart-mosaic-18': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-6.jpg',
+  'landscape-trio-10': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-7.jpg',
+  'landscape-duo-6': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-8.jpg',
+  'landscape-story-8': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-9.jpg',
+  'landscape-london-11': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-10.jpg',
+};
+
+export const TemplateThumbnail: React.FC<{ id: string; className?: string }> = ({ id, className = '' }) => {
+  const imageUrl = TEMPLATE_THUMBNAIL_IMAGES[id];
+  if (imageUrl) {
     return (
-      <div className="w-full h-full bg-stone-50 p-1 flex flex-col gap-[2px]">
-        <div className="flex gap-[2px] h-1/3">
-          <div className="bg-stone-200 w-1/3 rounded-sm"></div>
-          <div className="bg-stone-200 w-1/3 rounded-sm"></div>
-          <div className="bg-stone-200 w-1/3 rounded-sm"></div>
-        </div>
-        <div className="flex gap-[2px] h-1/3">
-          <div className="bg-stone-200 w-1/3 rounded-sm"></div>
-          <div className="bg-stone-100 w-1/3 flex flex-col items-center justify-center gap-1">
-            <div className="w-4 h-[2px] bg-stone-300 rounded-full"></div>
-            <div className="w-6 h-[2px] bg-stone-300 rounded-full"></div>
-          </div>
-          <div className="bg-stone-200 w-1/3 rounded-sm"></div>
-        </div>
-        <div className="flex gap-[2px] h-1/3">
-          <div className="bg-stone-200 w-1/3 rounded-sm"></div>
-          <div className="bg-stone-200 w-1/3 rounded-sm"></div>
-          <div className="bg-stone-200 w-1/3 rounded-sm"></div>
-        </div>
-      </div>
-    );
-  }
-  if (id === 'hero-mosaic-13') {
-    return (
-      <div className="w-full h-full bg-stone-50 p-1 flex flex-col gap-[2px]">
-        {/* Top Hero Photo */}
-        <div className="bg-stone-300 w-full h-[40%] rounded-xs"></div>
-        {/* Middle 4x3 Grid (12 photos) */}
-        <div className="grid grid-cols-4 grid-rows-3 gap-[1.5px] h-[40%]">
-          {Array.from({ length: 12 }).map((_, idx) => (
-            <div key={idx} className="bg-stone-200 rounded-[1px] w-full h-full"></div>
-          ))}
-        </div>
-        {/* Bottom Typography Lines */}
-        <div className="h-[20%] flex flex-col items-center justify-center gap-0.5 px-1">
-          <div className="w-8 h-[2px] bg-stone-300 rounded-full"></div>
-          <div className="w-12 h-[2px] bg-stone-400 rounded-full"></div>
-        </div>
-      </div>
-    );
-  }
-  if (id === 'editorial-5') {
-    return (
-      <div className="w-full h-full bg-stone-50 p-1 flex gap-[2px]">
-        {/* Left Column (2 photos) */}
-        <div className="w-[58%] flex flex-col gap-[2px] h-full">
-          <div className="bg-stone-300 h-[60%] rounded-xs relative p-0.5 flex flex-col justify-start">
-            <div className="w-6 h-[1.5px] bg-white/80 rounded-full mb-0.5"></div>
-            <div className="w-8 h-[1.5px] bg-white/80 rounded-full"></div>
-          </div>
-          <div className="bg-stone-200 h-[40%] rounded-xs"></div>
-        </div>
-        {/* Right Column (3 photos) */}
-        <div className="w-[42%] flex flex-col gap-[2px] h-full">
-          <div className="bg-stone-200 h-1/3 rounded-xs"></div>
-          <div className="bg-stone-200 h-1/3 rounded-xs"></div>
-          <div className="bg-stone-200 h-1/3 rounded-xs"></div>
-        </div>
-      </div>
-    );
-  }
-  if (id === 'asymmetric-6') {
-    return (
-      <div className="w-full h-full bg-stone-50 p-1 flex gap-[2px]">
-        <div className="flex flex-col gap-[2px] w-1/2">
-          <div className="bg-stone-200 h-[40%] rounded-sm"></div>
-          <div className="bg-stone-200 h-[30%] rounded-sm"></div>
-          <div className="bg-stone-200 h-[30%] rounded-sm"></div>
-        </div>
-        <div className="flex flex-col gap-[2px] w-1/2 pt-2">
-          <div className="bg-stone-200 h-[30%] rounded-sm"></div>
-          <div className="bg-stone-200 h-[40%] rounded-sm"></div>
-          <div className="bg-stone-200 h-[30%] rounded-sm"></div>
-        </div>
-      </div>
-    );
-  }
-  if (id === 'love-banner-8') {
-    return (
-      <div className="w-full h-full bg-stone-50 p-1 flex flex-col gap-[2px]">
-        <div className="flex gap-[2px] h-[40%]">
-          <div className="bg-stone-200 w-1/4 rounded-sm"></div>
-          <div className="bg-stone-200 w-1/4 rounded-sm"></div>
-          <div className="bg-stone-200 w-1/4 rounded-sm"></div>
-          <div className="bg-stone-200 w-1/4 rounded-sm"></div>
-        </div>
-        <div className="h-[20%] flex items-center justify-center gap-1">
-           <div className="w-1.5 h-1.5 rounded-sm bg-sky-200"></div>
-           <div className="w-1.5 h-1.5 rounded-sm bg-sky-200"></div>
-           <div className="w-1.5 h-1.5 rounded-sm bg-sky-200"></div>
-        </div>
-        <div className="flex gap-[2px] h-[40%]">
-          <div className="bg-stone-200 w-1/4 rounded-sm"></div>
-          <div className="bg-stone-200 w-1/4 rounded-sm"></div>
-          <div className="bg-stone-200 w-1/4 rounded-sm"></div>
-          <div className="bg-stone-200 w-1/4 rounded-sm"></div>
-        </div>
-      </div>
-    );
-  }
-  if (id === 'heart-mosaic-18') {
-    return (
-      <div className="w-full h-full bg-stone-50 p-1 flex items-center justify-center">
-        <div className="grid grid-cols-5 grid-rows-5 gap-[1px] w-full h-[80%]">
-          {/* row 1 */}
-          <div/><div className="bg-stone-200 rounded-[1px]"/><div/><div className="bg-stone-200 rounded-[1px]"/><div/>
-          {/* row 2 */}
-          <div className="bg-stone-200 rounded-[1px]"/><div className="bg-stone-300 rounded-[1px] col-span-3 row-span-2"/><div className="bg-stone-200 rounded-[1px]"/>
-          {/* row 3 */}
-          <div className="bg-stone-200 rounded-[1px]"/><div className="bg-stone-200 rounded-[1px]"/>
-          {/* row 4 */}
-          <div/><div className="bg-stone-200 rounded-[1px]"/><div className="bg-stone-200 rounded-[1px]"/><div className="bg-stone-200 rounded-[1px]"/><div/>
-          {/* row 5 */}
-          <div/><div/><div className="bg-stone-200 rounded-[1px]"/><div/><div/>
-        </div>
-      </div>
-    );
-  }
-  if (id === 'landscape-trio-10') {
-    return (
-      <div className="w-full h-full bg-stone-50 p-1 flex gap-[2px]">
-        {/* Left Hero */}
-        <div className="w-[32%] h-full bg-stone-300 rounded-xs relative p-0.5">
-          <div className="w-4 h-[1px] bg-white/90 rounded-full"></div>
-        </div>
-        {/* Middle 2x4 Matrix */}
-        <div className="w-[34%] h-full grid grid-cols-2 grid-rows-4 gap-[1px]">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="bg-stone-200 rounded-[1px] w-full h-full"></div>
-          ))}
-        </div>
-        {/* Right Hero */}
-        <div className="w-[34%] h-full bg-stone-300 rounded-xs"></div>
-      </div>
-    );
-  }
-  if (id === 'landscape-duo-6') {
-    return (
-      <div className="w-full h-full bg-stone-50 p-1 flex gap-[2px]">
-        {/* Left 2 stacked photos */}
-        <div className="w-[46%] h-full flex flex-col gap-[2px]">
-          <div className="bg-stone-300 h-[42%] rounded-xs"></div>
-          <div className="bg-stone-200 h-[58%] rounded-xs"></div>
-        </div>
-        {/* Right Typography + 2x2 grid */}
-        <div className="w-[54%] h-full flex flex-col gap-[2px]">
-          <div className="h-[34%] flex flex-col items-center justify-center gap-0.5">
-            <div className="w-6 h-[1.5px] bg-stone-400 rounded-full"></div>
-            <div className="w-4 h-[1px] bg-stone-300 rounded-full"></div>
-          </div>
-          <div className="h-[66%] grid grid-cols-2 grid-rows-2 gap-[1.5px]">
-            <div className="bg-stone-200 rounded-[1px]"></div>
-            <div className="bg-stone-200 rounded-[1px]"></div>
-            <div className="bg-stone-200 rounded-[1px]"></div>
-            <div className="bg-stone-200 rounded-[1px]"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  if (id === 'landscape-story-8') {
-    return (
-      <div className="w-full h-full bg-stone-50 p-1 flex gap-[2px]">
-        {/* Left Header + Big Hero */}
-        <div className="w-[63%] h-full flex flex-col gap-[2px]">
-          <div className="h-[18%] flex flex-col justify-center px-0.5">
-            <div className="w-8 h-[1.5px] bg-stone-400 rounded-full mb-0.5"></div>
-          </div>
-          <div className="h-[82%] bg-stone-300 rounded-xs"></div>
-        </div>
-        {/* Right 2x4 grid with badge */}
-        <div className="w-[37%] h-full grid grid-cols-2 grid-rows-4 gap-[1px]">
-          <div className="bg-stone-200 rounded-[1px]"></div>
-          <div className="bg-stone-200 rounded-[1px]"></div>
-          <div className="bg-stone-200 rounded-[1px]"></div>
-          <div className="bg-stone-200 rounded-[1px]"></div>
-          <div className="bg-stone-200 rounded-[1px]"></div>
-          <div className="bg-stone-200 rounded-[1px]"></div>
-          <div className="bg-red-50 border border-red-200 flex items-center justify-center rounded-[1px]">
-            <div className="w-1.5 h-1.5 rounded-full bg-red-400"></div>
-          </div>
-          <div className="bg-stone-200 rounded-[1px]"></div>
-        </div>
-      </div>
-    );
-  }
-  if (id === 'landscape-london-11') {
-    return (
-      <div className="w-full h-full bg-stone-50 p-1 flex gap-[2px]">
-        {/* Left Column */}
-        <div className="w-[30%] h-full flex flex-col gap-[1px]">
-          <div className="bg-stone-200 h-[33%] rounded-[1px]"></div>
-          <div className="h-[34%] flex gap-[1px]">
-            <div className="bg-stone-200 w-1/2 rounded-[1px]"></div>
-            <div className="bg-stone-200 w-1/2 rounded-[1px]"></div>
-          </div>
-          <div className="bg-stone-200 h-[33%] rounded-[1px]"></div>
-        </div>
-        {/* Center Column with tall middle */}
-        <div className="w-[30%] h-full flex flex-col gap-[1px]">
-          <div className="bg-stone-200 h-[25%] rounded-[1px]"></div>
-          <div className="bg-stone-300 h-[50%] rounded-[1px] relative flex items-center justify-center">
-            <div className="w-3 h-[1px] bg-white rounded-full"></div>
-          </div>
-          <div className="bg-stone-200 h-[25%] rounded-[1px]"></div>
-        </div>
-        {/* Right Column */}
-        <div className="w-[40%] h-full flex flex-col gap-[1px]">
-          <div className="bg-stone-200 h-[33%] rounded-[1px]"></div>
-          <div className="h-[34%] flex gap-[1px]">
-            <div className="bg-stone-200 w-1/2 rounded-[1px]"></div>
-            <div className="bg-stone-200 w-1/2 rounded-[1px]"></div>
-          </div>
-          <div className="bg-stone-200 h-[33%] rounded-[1px]"></div>
-        </div>
+      <div className={`w-full h-full bg-stone-100 overflow-hidden flex items-center justify-center ${className}`}>
+        <img
+          src={imageUrl}
+          alt={`Mẫu ${id}`}
+          className="w-full h-full object-cover select-none"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+        />
       </div>
     );
   }

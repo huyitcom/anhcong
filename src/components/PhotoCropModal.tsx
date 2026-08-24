@@ -21,6 +21,8 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
   if (!slot || !slot.imageUri) return null;
 
   const currentFilter = PHOTO_FILTERS.find((f) => f.id === slot.filter) || PHOTO_FILTERS[0];
+  const posX = Math.max(0, Math.min(100, 50 + (slot.offsetX || 0)));
+  const posY = Math.max(0, Math.min(100, 50 + (slot.offsetY || 0)));
 
   const handleZoomChange = (newZoom: number) => {
     const zoom = Math.min(Math.max(newZoom, 1), 3);
@@ -69,7 +71,9 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
                 alt={`Slot ${slotIndex + 1}`}
                 className="w-full h-full object-cover transition-transform duration-100"
                 style={{
-                  transform: `scale(${slot.zoom}) translate(${slot.offsetX}%, ${slot.offsetY}%) rotate(${slot.rotation || 0}deg)`,
+                  objectPosition: `${posX}% ${posY}%`,
+                  transform: `scale(${slot.zoom}) rotate(${slot.rotation || 0}deg)`,
+                  transformOrigin: `${posX}% ${posY}%`,
                   filter: currentFilter.css,
                 }}
               />

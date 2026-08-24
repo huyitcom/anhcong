@@ -217,12 +217,13 @@ export default function App() {
               activeSlotIndex={activeSlotIndex}
               onSelectSlot={(index) => setActiveSlotIndex(index)}
               onSlotImageChange={handleSlotImageChange}
+              onUpdateSlot={handleUpdateSlot}
               onOpenCropModal={(slot, index) => setEditingSlot({ slot, index })}
               posterRef={posterRef}
             />
 
             <p className="text-xs text-stone-500 mt-4 mb-2 text-center">
-              💡 Bấm vào từng khung ảnh để thay đổi hoặc tùy chỉnh vị trí. Dùng menu bên phải để sửa tên dâu rể & ngày cưới.
+              💡 Kéo thả file ảnh trực tiếp vào từng ô, hoặc kéo di chuột trên ảnh để chỉnh vị trí lên/xuống/trái/phải.
             </p>
           </div>
         </main>
