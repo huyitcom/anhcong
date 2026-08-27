@@ -40,6 +40,40 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
   const onSelectSlotRef = useRef(onSelectSlot);
   onSelectSlotRef.current = onSelectSlot;
 
+  // --- Responsive Scaling Logic ---
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  const baseWidth = posterSettings.aspectRatio === '3:2' ? 820 : 560;
+  
+  const getBaseHeight = (ratioStr: string, w: number) => {
+    const parts = ratioStr.split(':');
+    const wRatio = parseInt(parts[0]);
+    const hRatio = parseInt(parts[1]);
+    return (w * hRatio) / wRatio;
+  };
+  const baseHeight = getBaseHeight(posterSettings.aspectRatio, baseWidth);
+
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    
+    // Create a ResizeObserver to monitor the wrapper's available width
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        // We use Math.floor on the width to avoid fractional pixel jitter
+        // We add a small buffer (16px) for padding so it doesn't touch the very edges
+        const availableWidth = Math.floor(entry.contentRect.width) - 16;
+        // Scale down if available width is less than baseWidth. Don't scale up past 1.
+        const newScale = Math.min(1, availableWidth / baseWidth);
+        setScale(newScale);
+      }
+    });
+
+    observer.observe(wrapperRef.current);
+    return () => observer.disconnect();
+  }, [baseWidth]);
+  // --------------------------------
+
   const panRef = useRef<{
     slotIndex: number;
     startX: number;
@@ -395,34 +429,36 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
   };
 
   return (
-    <div className="w-full flex justify-center items-start py-1 sm:py-2 px-2">
-      <div
-        id="poster-root"
-        ref={posterRef}
-        className="relative bg-white shadow-2xl transition-all duration-300 overflow-hidden flex flex-col"
-        style={{
-          width: '100%',
-          maxWidth: posterSettings.aspectRatio === '3:2' ? '820px' : '560px',
-          aspectRatio:
-            posterSettings.aspectRatio === '3:2'
-              ? '3 / 2'
-              : posterSettings.aspectRatio === '2:3'
-              ? '2 / 3'
-              : posterSettings.aspectRatio === '3:4'
-              ? '3 / 4'
-              : posterSettings.aspectRatio === '1:1'
-              ? '1 / 1'
-              : '9 / 16',
-          backgroundColor: posterSettings.bgColor,
-          padding: `${posterSettings.outerMargin}px`,
-          border:
-            posterSettings.borderStyle === 'thin-line'
-              ? `1px solid ${posterSettings.borderColor}`
-              : posterSettings.borderStyle === 'gold-border'
-              ? `3px double #d97706`
-              : 'none',
+    <div 
+      ref={wrapperRef}
+      className="w-full flex justify-center items-start py-1 sm:py-2 px-2 overflow-hidden" 
+      style={{ height: baseHeight * scale + 16 }}
+    >
+      <div 
+        style={{ 
+          width: baseWidth, 
+          height: baseHeight, 
+          transform: `scale(${scale})`, 
+          transformOrigin: 'top center',
+          transition: 'transform 0.1s ease-out'
         }}
+        className="flex shrink-0 justify-center"
       >
+        <div
+          id="poster-root"
+          ref={posterRef}
+          className="relative bg-white shadow-2xl transition-all duration-300 overflow-hidden flex flex-col w-full h-full"
+          style={{
+            backgroundColor: posterSettings.bgColor,
+            padding: `${posterSettings.outerMargin}px`,
+            border:
+              posterSettings.borderStyle === 'thin-line'
+                ? `1px solid ${posterSettings.borderColor}`
+                : posterSettings.borderStyle === 'gold-border'
+                ? `3px double #d97706`
+                : 'none',
+          }}
+        >
         {/* Decorative inner line frame if gold border style */}
         {posterSettings.borderStyle === 'double-frame' && (
           <div
@@ -1331,6 +1367,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

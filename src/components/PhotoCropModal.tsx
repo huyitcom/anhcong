@@ -45,12 +45,12 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-stone-200">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-full flex flex-col overflow-hidden border border-stone-200">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-stone-50/50">
+        <div className="shrink-0 flex items-center justify-between px-4 sm:px-6 py-4 border-b border-stone-100 bg-stone-50/50">
           <div className="flex items-center gap-2">
             <Sliders className="w-5 h-5 text-sky-600" />
-            <h3 className="font-semibold text-stone-800 text-lg">
+            <h3 className="font-semibold text-stone-800 text-base sm:text-lg">
               Chỉnh Sửa Ảnh Khung #{slotIndex + 1}
             </h3>
           </div>
@@ -62,32 +62,33 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
           </button>
         </div>
 
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-          {/* Preview Container */}
-          <div className="flex flex-col items-center">
-            <div className="relative w-full aspect-[3/4] bg-stone-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center group border border-stone-200">
-              <img
-                src={slot.imageUri}
-                alt={`Slot ${slotIndex + 1}`}
-                className="w-full h-full object-cover transition-transform duration-100"
-                style={{
-                  objectPosition: `${posX}% ${posY}%`,
-                  transform: `scale(${slot.zoom}) rotate(${slot.rotation || 0}deg)`,
-                  transformOrigin: `${posX}% ${posY}%`,
-                  filter: currentFilter.css,
-                }}
-              />
-              <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm pointer-events-none">
-                Thu Phóng: {Math.round(slot.zoom * 100)}%
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+            {/* Preview Container */}
+            <div className="flex flex-col items-center">
+              <div className="relative w-full max-w-[280px] sm:max-w-none aspect-[3/4] bg-stone-900 rounded-xl overflow-hidden shadow-inner flex items-center justify-center group border border-stone-200">
+                <img
+                  src={slot.imageUri}
+                  alt={`Slot ${slotIndex + 1}`}
+                  className="w-full h-full object-cover transition-transform duration-100"
+                  style={{
+                    objectPosition: `${posX}% ${posY}%`,
+                    transform: `scale(${slot.zoom}) rotate(${slot.rotation || 0}deg)`,
+                    transformOrigin: `${posX}% ${posY}%`,
+                    filter: currentFilter.css,
+                  }}
+                />
+                <div className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm pointer-events-none">
+                  Thu Phóng: {Math.round(slot.zoom * 100)}%
+                </div>
               </div>
+              <p className="text-xs text-stone-400 mt-2 text-center">
+                Mẹo: Dùng các thanh kéo bên dưới để căn chỉnh vị trí ảnh hoàn hảo.
+              </p>
             </div>
-            <p className="text-xs text-stone-400 mt-2 text-center">
-              Mẹo: Dùng các thanh kéo bên dưới để căn chỉnh vị trí ảnh hoàn hảo.
-            </p>
-          </div>
 
-          {/* Adjustments Panel */}
-          <div className="space-y-5">
+            {/* Adjustments Panel */}
+            <div className="space-y-5">
             {/* Zoom Slider */}
             <div>
               <div className="flex items-center justify-between text-sm font-medium text-stone-700 mb-1.5">
@@ -196,9 +197,10 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
             </div>
           </div>
         </div>
+        </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between px-6 py-4 bg-stone-50 border-t border-stone-100">
+        <div className="shrink-0 flex items-center justify-between px-4 sm:px-6 py-4 bg-stone-50 border-t border-stone-100">
           <button
             onClick={() => {
               onRemovePhoto(slot.id);
@@ -207,14 +209,16 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
             className="flex items-center gap-1.5 text-xs font-medium text-red-600 hover:text-red-700 px-3 py-2 rounded-lg hover:bg-red-50 transition"
           >
             <Trash2 className="w-4 h-4" />
-            Xóa ảnh khỏi khung
+            <span className="hidden sm:inline">Xóa ảnh khỏi khung</span>
+            <span className="sm:hidden">Xóa ảnh</span>
           </button>
           <button
             onClick={onClose}
-            className="flex items-center gap-2 bg-stone-900 hover:bg-black text-white text-sm font-medium px-5 py-2.5 rounded-xl shadow-sm transition"
+            className="flex items-center gap-2 bg-stone-900 hover:bg-black text-white text-sm font-medium px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl shadow-sm transition"
           >
             <Check className="w-4 h-4" />
-            Hoàn Tất Chỉnh Sửa
+            <span className="hidden sm:inline">Hoàn Tất Chỉnh Sửa</span>
+            <span className="sm:hidden">Xong</span>
           </button>
         </div>
       </div>
