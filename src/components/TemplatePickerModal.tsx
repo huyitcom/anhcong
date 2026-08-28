@@ -22,7 +22,7 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
   if (!isOpen) return null;
 
   const filteredTemplates = TEMPLATES.filter((tmpl) => {
-    if (filter === 'portrait') return tmpl.aspectRatio === '2:3';
+    if (filter === 'portrait') return tmpl.aspectRatio === '2:3' || tmpl.aspectRatio === '22:30';
     if (filter === 'landscape') return tmpl.aspectRatio === '3:2';
     return true;
   });
@@ -85,7 +85,7 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              Khổ Đứng 60x90cm ({TEMPLATES.filter((t) => t.aspectRatio === '2:3').length})
+              Khổ Đứng ({TEMPLATES.filter((t) => t.aspectRatio === '2:3' || t.aspectRatio === '22:30').length})
             </button>
             <button
               onClick={() => setFilter('landscape')}
@@ -139,12 +139,12 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
                   {/* Thumbnail Container - Truly Horizontal for Landscape (3:2) and Vertical for Portrait (2:3) */}
                   <div
                     className={`w-full flex items-center justify-center bg-stone-100/80 rounded-xl overflow-hidden p-2.5 transition-colors group-hover:bg-stone-100 ${
-                      isLandscape ? 'aspect-[3/2]' : 'aspect-[2/3]'
+                      isLandscape ? 'aspect-[3/2]' : tmpl.aspectRatio === '22:30' ? 'aspect-[22/30]' : 'aspect-[2/3]'
                     }`}
                   >
                     <div
                       className={`shadow-sm border border-stone-200/90 rounded-md overflow-hidden transition-transform duration-200 group-hover:scale-[1.02] ${
-                        isLandscape ? 'w-full h-full aspect-[3/2]' : 'w-full h-full aspect-[2/3]'
+                        isLandscape ? 'w-full h-full aspect-[3/2]' : tmpl.aspectRatio === '22:30' ? 'w-full h-full aspect-[22/30]' : 'w-full h-full aspect-[2/3]'
                       }`}
                     >
                       <TemplateThumbnail id={tmpl.id} />
@@ -160,10 +160,10 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
                       className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0 ${
                         isLandscape
                           ? 'bg-amber-100 text-amber-800'
-                          : 'bg-indigo-100 text-indigo-800'
+                          : tmpl.aspectRatio === '22:30' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
                       }`}
                     >
-                      {isLandscape ? '90x60 Ngang' : '60x90 Đứng'}
+                      {isLandscape ? '90x60 Ngang' : tmpl.aspectRatio === '22:30' ? '22x30 Đứng' : '60x90 Đứng'}
                     </span>
                   </div>
                 </div>

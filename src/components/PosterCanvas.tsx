@@ -294,7 +294,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
             />
 
             {/* Quick Actions (top right) */}
-            <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-auto">
+            <div className={`absolute top-2 right-2 flex items-center gap-1.5 transition-opacity duration-150 pointer-events-auto ${activeSlotIndex === index ? 'opacity-100' : 'opacity-0 lg:group-hover:opacity-100'}`}>
               <button
                 type="button"
                 onPointerDown={(e) => e.stopPropagation()}
@@ -1364,6 +1364,200 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
               <div className="w-full h-[33%] min-h-0">
                 {renderSlot(10, 'w-full h-full')}
               </div>
+            </div>
+          </div>
+        )}
+
+        {templateId === 'grid-8-center-text' && (
+          <div className="w-full h-full flex flex-col" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Top Row */}
+            <div className="w-full h-[33.33%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(0, 'w-full h-full')}</div>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(1, 'w-full h-full')}</div>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(2, 'w-full h-full')}</div>
+            </div>
+            {/* Middle Row */}
+            <div className="w-full h-[33.34%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(3, 'w-full h-full')}</div>
+              {/* Text Block */}
+              <div className="w-1/3 h-full min-h-0 flex flex-col items-center justify-center p-2 sm:p-4 text-center">
+                <div
+                  style={{
+                    fontFamily: textConfig.namesFont,
+                    color: textConfig.namesColor,
+                  }}
+                  className="text-lg sm:text-2xl font-light mb-2"
+                >
+                  {textConfig.groomName}<br />&<br />{textConfig.brideName}
+                </div>
+                <div
+                  style={{
+                    fontFamily: textConfig.taglineFont === 'Montserrat' ? 'Great Vibes, cursive' : textConfig.taglineFont,
+                    color: textConfig.taglineColor,
+                  }}
+                  className="text-xs sm:text-sm italic mb-2 mt-4"
+                >
+                  {textConfig.tagline}
+                </div>
+                <div
+                  style={{
+                    fontFamily: textConfig.dateFont,
+                    color: textConfig.dateColor,
+                  }}
+                  className="text-[10px] sm:text-xs font-medium tracking-widest uppercase"
+                >
+                  {textConfig.dateText ? textConfig.dateText.replace(/\n/g, '.') : '29.03.2026'}
+                </div>
+              </div>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(4, 'w-full h-full')}</div>
+            </div>
+            {/* Bottom Row */}
+            <div className="w-full h-[33.33%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(5, 'w-full h-full')}</div>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(6, 'w-full h-full')}</div>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(7, 'w-full h-full')}</div>
+            </div>
+          </div>
+        )}
+
+        {templateId === 'hero-trio-3' && (
+          <div className="w-full h-full flex flex-col" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Hero Image */}
+            <div className="w-full h-[55%] min-h-0">
+              {renderSlot(0, 'w-full h-full')}
+            </div>
+            {/* Text Block */}
+            <div className="w-full h-[15%] min-h-0 flex flex-col items-center justify-center p-2 text-center">
+              <div
+                style={{
+                  fontFamily: textConfig.taglineFont,
+                  color: textConfig.taglineColor,
+                  letterSpacing: '3px',
+                }}
+                className="text-[10px] sm:text-xs font-bold uppercase mb-2"
+              >
+                {textConfig.tagline}
+              </div>
+              <div
+                style={{
+                  fontFamily: textConfig.namesFont,
+                  color: textConfig.namesColor,
+                }}
+                className="text-lg sm:text-2xl font-normal tracking-wide uppercase mb-2"
+              >
+                {textConfig.groomName} {textConfig.connector || '&'} {textConfig.brideName}
+              </div>
+              <div
+                style={{
+                  fontFamily: textConfig.subtextFont,
+                  color: textConfig.subtextColor,
+                }}
+                className="text-[9px] sm:text-[10px] italic max-w-[80%] mx-auto"
+              >
+                {textConfig.subtext}
+              </div>
+            </div>
+            {/* Bottom Photos */}
+            <div className="w-full h-[30%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-1/2 h-full min-h-0">{renderSlot(1, 'w-full h-full')}</div>
+              <div className="w-1/2 h-full min-h-0">{renderSlot(2, 'w-full h-full')}</div>
+            </div>
+          </div>
+        )}
+
+        {templateId === 'magazine-8' && (
+          <div className="w-full h-full flex flex-col" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Row 1: Left 1/3, Right 2/3 */}
+            <div className="w-full h-[30%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(0, 'w-full h-full')}</div>
+              <div className="w-2/3 h-full min-h-0">{renderSlot(3, 'w-full h-full')}</div>
+            </div>
+            {/* Row 2: 3 columns */}
+            <div className="w-full h-[40%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(1, 'w-full h-full')}</div>
+              <div className="w-1/3 h-full min-h-0 flex flex-col items-center justify-center p-3 text-center text-white overflow-hidden"
+                style={{ backgroundColor: posterSettings.blockBgColor || '#8b988f' }}>
+                <div
+                  style={{
+                    fontFamily: textConfig.subtextFont,
+                  }}
+                  className="text-[8px] sm:text-[9px] uppercase tracking-widest mb-4 opacity-80"
+                >
+                  FROM TODAY WE WILL GROW OLD TOGETHER
+                </div>
+                <div
+                  style={{
+                    fontFamily: textConfig.dateFont,
+                    lineHeight: 1.1,
+                  }}
+                  className="text-3xl sm:text-4xl font-normal mb-4"
+                >
+                  {textConfig.dateText ? textConfig.dateText.replace(/\./g, '\n') : '29\n03\n26'}
+                </div>
+                <div
+                  style={{
+                    fontFamily: textConfig.namesFont,
+                  }}
+                  className="text-[10px] sm:text-xs font-medium tracking-wide uppercase flex flex-col items-center"
+                >
+                  <span>{textConfig.groomName}</span>
+                  <span className="text-xl my-1" style={{ fontFamily: 'Great Vibes, cursive' }}>&</span>
+                  <span>{textConfig.brideName}</span>
+                </div>
+              </div>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(4, 'w-full h-full')}</div>
+            </div>
+            {/* Row 3: 3 columns, last col is 2 stacked */}
+            <div className="w-full h-[30%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(2, 'w-full h-full')}</div>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(5, 'w-full h-full')}</div>
+              <div className="w-1/3 h-full min-h-0 flex flex-col" style={{ gap: `${posterSettings.gap}px` }}>
+                <div className="w-full h-[50%] min-h-0">{renderSlot(6, 'w-full h-full')}</div>
+                <div className="w-full h-[50%] min-h-0">{renderSlot(7, 'w-full h-full')}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {templateId === 'asymmetric-7' && (
+          <div className="w-full h-full flex flex-col" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Row 1 */}
+            <div className="w-full h-[33.33%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(0, 'w-full h-full')}</div>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(1, 'w-full h-full')}</div>
+              <div className="w-1/3 h-full min-h-0 flex flex-col items-start justify-center p-4">
+                <div
+                  style={{
+                    fontFamily: textConfig.taglineFont,
+                    color: textConfig.taglineColor,
+                  }}
+                  className="text-xl sm:text-2xl uppercase tracking-widest leading-snug font-medium"
+                >
+                  ETERNAL<br/>PROMISE
+                </div>
+              </div>
+            </div>
+            {/* Row 2 */}
+            <div className="w-full h-[33.34%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(2, 'w-full h-full')}</div>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(3, 'w-full h-full')}</div>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(4, 'w-full h-full')}</div>
+            </div>
+            {/* Row 3 */}
+            <div className="w-full h-[33.33%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-1/3 h-full min-h-0 flex flex-col items-center justify-end p-4 text-center">
+                <div
+                  style={{
+                    fontFamily: textConfig.subtextFont,
+                    color: textConfig.subtextColor,
+                  }}
+                  className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest leading-relaxed mb-4"
+                >
+                  LET ETERNAL MOMENT<br/>BECOME YOUR LOVE STORY
+                </div>
+              </div>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(5, 'w-full h-full')}</div>
+              <div className="w-1/3 h-full min-h-0">{renderSlot(6, 'w-full h-full')}</div>
             </div>
           </div>
         )}

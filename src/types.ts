@@ -38,7 +38,7 @@ export interface TextConfig {
   textUppercase: boolean;
 }
 
-export type AspectRatioType = '2:3' | '3:2' | '3:4' | '1:1' | '9:16';
+export type AspectRatioType = '2:3' | '3:2' | '3:4' | '1:1' | '9:16' | '22:30';
 
 export interface PosterSettings {
   bgColor: string; // hex or preset name
@@ -48,6 +48,7 @@ export interface PosterSettings {
   cornerRadius: number; // 0 to 24
   borderStyle: 'none' | 'thin-line' | 'gold-border' | 'double-frame';
   borderColor: string;
+  blockBgColor?: string;
   aspectRatio: AspectRatioType;
 }
 
@@ -61,7 +62,11 @@ export type TemplateId =
   | 'landscape-trio-10'
   | 'landscape-duo-6'
   | 'landscape-story-8'
-  | 'landscape-london-11';
+  | 'landscape-london-11'
+  | 'grid-8-center-text'
+  | 'hero-trio-3'
+  | 'magazine-8'
+  | 'asymmetric-7';
 
 export interface TemplateDefinition {
   id: TemplateId;

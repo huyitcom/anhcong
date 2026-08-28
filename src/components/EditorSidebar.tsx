@@ -40,6 +40,10 @@ const TEMPLATE_THUMBNAIL_IMAGES: Record<string, string> = {
   'landscape-duo-6': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-8.jpg',
   'landscape-story-8': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-9.jpg',
   'landscape-london-11': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-10.jpg',
+  'grid-8-center-text': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-11.jpg',
+  'hero-trio-3': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-12.jpg',
+  'magazine-8': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-13.jpg',
+  'asymmetric-7': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-14.jpg',
 };
 
 export const TemplateThumbnail: React.FC<{ id: string; className?: string }> = ({ id, className = '' }) => {
@@ -427,6 +431,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   { id: '3:2', label: '90 x 60 cm (Ngang)' },
                   { id: '2:3', label: '60 x 90 cm (Đứng)' },
                   { id: '3:4', label: '50 x 75 cm' },
+                  { id: '22:30', label: '22 x 30 cm (Để Bàn)' },
                   { id: '1:1', label: '90 x 90 cm (Vuông)' },
                   { id: '9:16', label: '60 x 120 cm (Dọc)' },
                 ].map((ratio) => (
@@ -470,6 +475,27 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                     </span>
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Center Block Bg Color */}
+            <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200/80 space-y-2">
+              <span className="text-xs font-bold text-stone-800 uppercase tracking-wider block">
+                Màu Nền Khối Chữ (Nếu Có)
+              </span>
+              <div className="flex items-center gap-3">
+                <div className="relative w-8 h-8 rounded-full border border-stone-300 overflow-hidden shadow-xs cursor-pointer">
+                  <input
+                    type="color"
+                    value={posterSettings.blockBgColor || '#8b988f'}
+                    onChange={(e) => updateSettings('blockBgColor', e.target.value)}
+                    className="absolute inset-[-10px] w-12 h-12 cursor-pointer"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-semibold text-stone-700">Tùy chỉnh màu</span>
+                  <span className="text-[10px] text-stone-500 uppercase">{posterSettings.blockBgColor || '#8b988f'}</span>
+                </div>
               </div>
             </div>
 

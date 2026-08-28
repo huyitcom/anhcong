@@ -143,6 +143,8 @@ export default function App() {
         return { width: 7087, height: 10630 };
       case '3:4': // 50 x 75 cm at 300 DPI
         return { width: 5906, height: 7874 };
+      case '22:30': // 22 x 30 cm at 300 DPI
+        return { width: 2598, height: 3543 };
       case '1:1': // 90 x 90 cm at 300 DPI
         return { width: 7087, height: 7087 };
       case '9:16': // 60 x 106 cm at 300 DPI

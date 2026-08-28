@@ -26,7 +26,7 @@ export const SAMPLE_WEDDING_PHOTOS = [
 export const TEMPLATES: TemplateDefinition[] = [
   {
     id: 'classic-10',
-    name: 'Mẫu 10 Khung Classic (Centered Text)',
+    name: 'Mẫu số 1',
     description: '10 khung ảnh bố cục bao quanh cụm chữ trung tâm nghệ thuật',
     slotCount: 10,
     aspectRatio: '2:3',
@@ -34,7 +34,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   },
   {
     id: 'hero-mosaic-13',
-    name: 'Mẫu 13 Khung - Hero & Mosaic 4x3 (Love Trip)',
+    name: 'Mẫu số 2',
     description: '1 ảnh lớn phía trên, 12 ảnh nhỏ lưới 4x3 ở giữa và cụm chữ nghệ thuật Love Trip sang trọng phía dưới',
     slotCount: 13,
     aspectRatio: '2:3',
@@ -42,7 +42,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   },
   {
     id: 'editorial-5',
-    name: 'Mẫu 5 Khung - Tạp Chí Nghệ Thuật (Editorial Love)',
+    name: 'Mẫu số 3',
     description: 'Phong cách bìa tạp chí Hàn Quốc với 2 ảnh bên trái lồng chữ nghệ thuật và 3 ảnh xếp dọc bên phải',
     slotCount: 5,
     aspectRatio: '2:3',
@@ -50,7 +50,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   },
   {
     id: 'asymmetric-6',
-    name: 'Mẫu 6 Khung So Le Cụm Chữ Dưới (Warm Romantic)',
+    name: 'Mẫu số 4',
     description: '6 khung ảnh bố cục so le nghệ thuật, phần tên dâu rể & Save the Date viết cách điệu phía dưới',
     slotCount: 6,
     aspectRatio: '2:3',
@@ -58,7 +58,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   },
   {
     id: 'love-banner-8',
-    name: 'Mẫu 8 Khung Chữ L-O-V-E Cắt Lồng (Love Banner)',
+    name: 'Mẫu số 5',
     description: '8 khung ảnh xếp tầng kết hợp chữ L-O-V-E cắt lồng nghệ thuật ở khoảng giữa các khung',
     slotCount: 8,
     aspectRatio: '2:3',
@@ -66,7 +66,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   },
   {
     id: 'heart-mosaic-18',
-    name: 'Mẫu Trái Tim Mosaic (Dear Love...)',
+    name: 'Mẫu số 6',
     description: 'Bố cục khung ảnh xếp hình trái tim nghệ thuật quanh bức ảnh cưới trung tâm',
     slotCount: 19,
     aspectRatio: '2:3',
@@ -74,7 +74,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   },
   {
     id: 'landscape-trio-10',
-    name: 'Mẫu Ngang 10 Khung - Song Hero & Lưới Giữa (Forest Romance)',
+    name: 'Mẫu số 7',
     description: 'Bố cục ngang 90x60 cm: 2 ảnh chân dung lớn 2 bên, ở giữa là lưới 8 ảnh nhỏ (2x4) kèm chữ nghệ thuật trên ảnh',
     slotCount: 10,
     aspectRatio: '3:2',
@@ -82,7 +82,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   },
   {
     id: 'landscape-duo-6',
-    name: 'Mẫu Ngang 6 Khung - Duo Trái & Lưới 2x2 (You Make My Heart Happy)',
+    name: 'Mẫu số 8',
     description: 'Bố cục ngang 90x60 cm: 2 ảnh xếp dọc bên trái, bên phải là cụm chữ thiệp cưới lãng mạn cùng lưới 4 ảnh (2x2)',
     slotCount: 6,
     aspectRatio: '3:2',
@@ -90,7 +90,7 @@ export const TEMPLATES: TemplateDefinition[] = [
   },
   {
     id: 'landscape-story-8',
-    name: 'Mẫu Ngang 8 Khung - Big Hero & Lưới Phải (Enjoy The Now)',
+    name: 'Mẫu số 9',
     description: 'Bố cục ngang 90x60 cm: 1 ảnh lớn chiếm 2/3 khung hình bên trái có tiêu đề phía trên, bên phải là lưới 7 ảnh nhỏ cùng huy hiệu trái tim Love forever',
     slotCount: 8,
     aspectRatio: '3:2',
@@ -98,11 +98,43 @@ export const TEMPLATES: TemplateDefinition[] = [
   },
   {
     id: 'landscape-london-11',
-    name: 'Mẫu Ngang 11 Khung - Panorama Magazine Collage (London Trip)',
+    name: 'Mẫu số 10',
     description: 'Bố cục ngang 90x60 cm: 11 khung ảnh phong cách tạp chí du lịch lãng mạn, ảnh tháp Big Ben trung tâm lồng chữ Love Trip',
     slotCount: 11,
     aspectRatio: '3:2',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-10.jpg'
+  },
+  {
+    id: 'grid-8-center-text',
+    name: 'Mẫu số 11',
+    description: 'Bố cục đứng 8 khung ảnh xếp lưới 3x3 với phần chữ nằm ở trung tâm',
+    slotCount: 8,
+    aspectRatio: '22:30',
+    previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-11.jpg'
+  },
+  {
+    id: 'hero-trio-3',
+    name: 'Mẫu số 12',
+    description: 'Bố cục đứng 3 khung: 1 ảnh lớn phía trên, phần chữ nổi bật ở giữa và 2 ảnh nhỏ bên dưới',
+    slotCount: 3,
+    aspectRatio: '22:30',
+    previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-12.jpg'
+  },
+  {
+    id: 'magazine-8',
+    name: 'Mẫu số 13',
+    description: 'Bố cục đứng 8 khung ảnh xếp theo khối hiện đại, kèm khối chữ ngày tháng nổi bật',
+    slotCount: 8,
+    aspectRatio: '22:30',
+    previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-13.jpg'
+  },
+  {
+    id: 'asymmetric-7',
+    name: 'Mẫu số 14',
+    description: 'Bố cục đứng 7 khung ảnh xếp lưới 3x3 so le đan xen cùng các khoảng trống chứa text nghệ thuật',
+    slotCount: 7,
+    aspectRatio: '22:30',
+    previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-14.jpg'
   }
 ];
 
@@ -144,6 +176,7 @@ export const DEFAULT_POSTER_SETTINGS: PosterSettings = {
   cornerRadius: 0,
   borderStyle: 'none',
   borderColor: '#d6d3d1',
+  blockBgColor: '#8b988f',
   aspectRatio: '2:3'
 };
 
