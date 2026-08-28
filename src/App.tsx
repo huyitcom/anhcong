@@ -17,7 +17,7 @@ import { EditorSidebar } from './components/EditorSidebar';
 import { PhotoCropModal } from './components/PhotoCropModal';
 import { BatchUploadModal } from './components/BatchUploadModal';
 import { OrderPrintModal } from './components/OrderPrintModal';
-import { toJpeg } from 'html-to-image';
+import { toJpeg, getFontEmbedCSS } from 'html-to-image';
 
 export default function App() {
   const [templateId, setTemplateId] = useState<TemplateId>('classic-10');
@@ -162,6 +162,9 @@ export default function App() {
       const elemWidth = posterRef.current.offsetWidth || 560;
       const pixelRatio = targetWidth / elemWidth;
 
+      // Get fonts to embed
+      const fontEmbedCSS = await getFontEmbedCSS(posterRef.current);
+
       // Use exact 300 DPI dimensions with JPEG. Quality 0.90 keeps the file size reasonable for email.
       const dataUrl = await toJpeg(posterRef.current, {
         canvasWidth: targetWidth,
@@ -170,16 +173,19 @@ export default function App() {
         quality: 0.90,
         backgroundColor: posterSettings.bgColor || '#ffffff',
         cacheBust: true,
+        fontEmbedCSS: fontEmbedCSS,
       });
       return dataUrl;
     } catch (err) {
       console.error('Failed to capture high-res canvas as JPEG for order email:', err);
       try {
         const fallbackRatio = 4;
+        const fontEmbedCSS = await getFontEmbedCSS(posterRef.current);
         return await toJpeg(posterRef.current, {
           pixelRatio: fallbackRatio,
           quality: 0.90,
           backgroundColor: posterSettings.bgColor || '#ffffff',
+          fontEmbedCSS: fontEmbedCSS,
         });
       } catch (fallbackErr) {
         console.error('Fallback export also failed:', fallbackErr);
