@@ -32,25 +32,26 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div
-        className="relative w-full max-w-4xl max-h-[90vh] bg-white rounded-3xl shadow-2xl border border-stone-200 flex flex-col overflow-hidden"
+        className="relative w-full max-w-4xl max-h-[92vh] sm:max-h-[90vh] bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-stone-200 flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-stone-50/80">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center shadow-xs">
-              <LayoutGrid className="w-5 h-5" />
+        <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-b border-stone-100 bg-stone-50/80">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center shadow-xs shrink-0">
+              <LayoutGrid className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-stone-900 flex items-center gap-2">
-                Kho Mẫu Layout Cổng Cưới
-                <span className="text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 font-semibold">
+              <h2 className="text-base sm:text-lg font-bold text-stone-900 flex items-center gap-2">
+                <span className="sm:hidden">Mẫu Layout</span>
+                <span className="hidden sm:inline">Kho Mẫu Layout Cổng Cưới</span>
+                <span className="hidden sm:inline-block text-xs px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 font-semibold">
                   {TEMPLATES.length} Mẫu
                 </span>
               </h2>
-              <p className="text-xs text-stone-500">
+              <p className="hidden sm:block text-xs text-stone-500">
                 Chọn mẫu bố cục phù hợp với ý thích và số lượng ảnh của bạn
               </p>
             </div>
@@ -58,14 +59,15 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-full transition"
+            className="p-1.5 sm:p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-full transition cursor-pointer"
+            aria-label="Đóng"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Filter Categories */}
-        <div className="px-6 py-3 border-b border-stone-100 bg-white flex items-center justify-between flex-wrap gap-2">
+        {/* Filter Categories - Hidden on mobile per user request */}
+        <div className="hidden sm:flex px-6 py-3 border-b border-stone-100 bg-white items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl">
             <button
               onClick={() => setFilter('all')}
@@ -105,12 +107,12 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
         </div>
 
         {/* Templates Grid Content */}
-        <div className="flex-1 overflow-y-auto p-6 bg-stone-50/50">
+        <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 bg-stone-50/50">
           <div
             className={
               filter === 'landscape'
-                ? 'grid grid-cols-1 sm:grid-cols-2 gap-5'
-                : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4'
+                ? 'grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5'
+                : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4'
             }
           >
             {filteredTemplates.map((tmpl) => {
@@ -173,13 +175,15 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-stone-100 bg-white flex items-center justify-between">
+        <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-t border-stone-100 bg-white flex items-center justify-between">
           <span className="text-xs text-stone-500">
-            Tổng cộng: <strong className="text-stone-800">{TEMPLATES.length} mẫu thiết kế</strong> (Đã tối ưu hóa bố cục in ấn)
+            <span className="hidden sm:inline">Tổng cộng: </span>
+            <strong className="text-stone-800">{TEMPLATES.length} mẫu</strong>
+            <span className="hidden sm:inline"> thiết kế (Đã tối ưu hóa bố cục in ấn)</span>
           </span>
           <button
             onClick={onClose}
-            className="px-5 py-2 text-xs font-semibold text-white bg-stone-900 hover:bg-stone-800 rounded-xl transition shadow-xs"
+            className="px-4 py-1.5 sm:px-5 sm:py-2 text-xs font-semibold text-white bg-stone-900 hover:bg-stone-800 rounded-xl transition shadow-xs cursor-pointer"
           >
             Hoàn tất
           </button>

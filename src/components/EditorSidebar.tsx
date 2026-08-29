@@ -428,12 +428,12 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
               </span>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: '3:2', label: '90 x 60 cm (Ngang)' },
-                  { id: '2:3', label: '60 x 90 cm (Đứng)' },
-                  { id: '3:4', label: '50 x 75 cm' },
-                  { id: '22:30', label: '22 x 30 cm (Để Bàn)' },
-                  { id: '1:1', label: '90 x 90 cm (Vuông)' },
-                  { id: '9:16', label: '60 x 120 cm (Dọc)' },
+                  { id: '2:3', label: '60x90' },
+                  { id: '3:2', label: '90x60' },
+                  { id: '3:4', label: '50x75' },
+                  { id: '22:30', label: '22x30' },
+                  { id: '1:1', label: '90x90' },
+                  { id: '9:16', label: '60x120' },
                 ].map((ratio) => (
                   <button
                     key={ratio.id}

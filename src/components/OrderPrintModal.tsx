@@ -129,15 +129,16 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
 
   const currentMaterial = GATE_PHOTO_MATERIALS.find((m) => m.id === selectedMaterialId) || GATE_PHOTO_MATERIALS[0];
 
-  // Map Aspect Ratio to Size String
+  // Map Aspect Ratio to Size String (compact numbers only: 60x90, 60x120, etc.)
   const sizeMap: Record<string, string> = {
-    '3:2': '90 x 60 cm (Khổ Ngang Chuẩn)',
-    '2:3': '60 x 90 cm (Khổ Đứng Chuẩn)',
-    '3:4': '50 x 75 cm (Khổ Đứng Vừa)',
-    '1:1': '90 x 90 cm (Khổ Vuông Nghệ Thuật)',
-    '9:16': '60 x 120 cm (Khổ Dọc Panorama)',
+    '3:2': '90x60',
+    '2:3': '60x90',
+    '3:4': '50x75',
+    '22:30': '22x30',
+    '1:1': '90x90',
+    '9:16': '60x120',
   };
-  const currentSize = sizeMap[posterSettings.aspectRatio] || '60 x 90 cm';
+  const currentSize = sizeMap[posterSettings.aspectRatio] || '60x90';
 
   const handleSendOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -217,28 +218,29 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto animate-fade-in">
       <div className="bg-white rounded-2xl sm:rounded-3xl max-w-6xl w-full shadow-2xl overflow-hidden border border-stone-200 my-auto max-h-[92vh] flex flex-col">
         {/* Top Header */}
-        <div className="px-5 py-4 bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-white shadow-xs">
-              <ShoppingBag className="w-5 h-5" />
+        <div className="px-4 py-3 sm:px-5 sm:py-4 bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-white shadow-xs shrink-0">
+              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold font-serif leading-tight">
-                  Đặt In Ảnh Cổng Cưới Cao Cấp
+                <h2 className="text-base sm:text-lg font-bold leading-tight">
+                  Đặt hàng
                 </h2>
                 <span className="text-[11px] bg-white/25 text-white font-sans font-semibold px-2 py-0.5 rounded-full hidden sm:inline-block">
                   Photobook Vietnam
                 </span>
               </div>
-              <p className="text-xs text-sky-100 font-normal mt-0.5">
+              <p className="hidden sm:block text-xs text-sky-100 font-normal mt-0.5">
                 Chọn chất liệu ép gỗ chuẩn studio & nhận thành phẩm hoàn thiện tận nơi
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition"
+            className="p-1.5 sm:p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-xl transition cursor-pointer"
+            aria-label="Đóng"
           >
             <X className="w-5 h-5" />
           </button>
@@ -266,7 +268,7 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-sky-200 self-start sm:self-auto shadow-2xs">
-                  <span className="text-xs text-stone-500">Kích thước in:</span>
+                  <span className="text-xs text-stone-500">Kích thước:</span>
                   <span className="text-xs font-bold text-sky-700">{currentSize}</span>
                 </div>
               </div>
@@ -460,7 +462,8 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
                                     if (dataUrl) {
                                       const groom = (textConfig.groomName || 'Groom').replace(/\s+/g, '_');
                                       const bride = (textConfig.brideName || 'Bride').replace(/\s+/g, '_');
-                                      const fileName = `Anh_Cong_Admin_${groom}_${bride}_${Date.now()}.jpg`;
+                                      const sizeCode = posterSettings.aspectRatio.replace(':', 'x');
+                                      const fileName = `Anh_Cong_${groom}_${bride}_${sizeCode}_300DPI_${Date.now()}.jpg`;
                                       const link = document.createElement('a');
                                       link.download = fileName;
                                       link.href = dataUrl;
@@ -527,7 +530,7 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
                         ) : (
                           <>
                             <Send className="w-4 h-4" />
-                            <span>Gửi Yêu Cầu Đặt In</span>
+                            <span>Gửi Yêu Cầu Đặt Hàng</span>
                           </>
                         )}
                       </button>
@@ -545,17 +548,17 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
 
               <div>
                 <h3 className="text-xl font-bold font-serif text-stone-900">
-                  Đã Ghi Nhận Yêu Cầu Đặt In Thành Công!
+                  Đã Ghi Nhận Yêu Cầu Đặt Hàng Thành Công!
                 </h3>
                 <p className="text-xs sm:text-sm text-stone-600 mt-1.5 max-w-md mx-auto">
-                  Photobook Vietnam đã nhận thông tin đặt in ảnh cổng cưới của bạn. Đội ngũ kỹ thuật sẽ liên hệ qua SĐT / Zalo <span className="font-semibold text-stone-900">{customerPhone}</span> để kiểm tra file in, gửi bản duyệt mẫu và xác nhận đơn hàng.
+                  Photobook Vietnam đã nhận thông tin đặt hàng ảnh cổng cưới của bạn. Đội ngũ kỹ thuật sẽ liên hệ qua SĐT / Zalo <span className="font-semibold text-stone-900">{customerPhone}</span> để kiểm tra file in, gửi bản duyệt mẫu và xác nhận đơn hàng.
                 </p>
               </div>
 
               {/* Order Summary Box */}
               <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 max-w-lg mx-auto text-left text-xs space-y-2">
                 <div className="font-bold text-stone-800 border-b border-stone-200 pb-2 flex justify-between">
-                  <span>Tóm Tắt Đơn Đặt In</span>
+                  <span>Tóm Tắt Đơn Đặt Hàng</span>
                   <span className="text-sky-700">1 bức ảnh cổng</span>
                 </div>
                 <div className="flex justify-between">

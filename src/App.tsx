@@ -18,6 +18,7 @@ import { PhotoCropModal } from './components/PhotoCropModal';
 import { BatchUploadModal } from './components/BatchUploadModal';
 import { OrderPrintModal } from './components/OrderPrintModal';
 import { toJpeg, getFontEmbedCSS } from 'html-to-image';
+import { setDpiInJpegDataUrl } from './utils/imageUtils';
 
 export default function App() {
   const [templateId, setTemplateId] = useState<TemplateId>('classic-10');
@@ -154,39 +155,44 @@ export default function App() {
     }
   };
 
-  // Get Canvas Image Data URL for Order Email Submission (High-Resolution 300DPI JPEG)
+  // Get Canvas Image Data URL for Order Email Submission & High-Res Export (High-Resolution 300DPI JPEG)
   const handleGetDesignDataUrl = async (): Promise<string | null> => {
     if (!posterRef.current) return null;
     try {
-      const { width: targetWidth, height: targetHeight } = getPrintDimensions(posterSettings.aspectRatio);
-      const elemWidth = posterRef.current.offsetWidth || 560;
+      const { width: targetWidth } = getPrintDimensions(posterSettings.aspectRatio);
+      const baseWidth = posterSettings.aspectRatio === '3:2' ? 820 : 560;
+      const elemWidth = posterRef.current.offsetWidth || baseWidth;
       const pixelRatio = targetWidth / elemWidth;
 
       // Get fonts to embed
       const fontEmbedCSS = await getFontEmbedCSS(posterRef.current);
 
-      // Use exact 300 DPI dimensions with JPEG. Quality 0.90 keeps the file size reasonable for email.
-      const dataUrl = await toJpeg(posterRef.current, {
-        canvasWidth: targetWidth,
-        canvasHeight: targetHeight,
+      // We only pass pixelRatio. We DO NOT pass canvasWidth/canvasHeight because
+      // html-to-image calculates canvas.width = canvasWidth * pixelRatio, which would multiply the dimensions twice!
+      const rawDataUrl = await toJpeg(posterRef.current, {
         pixelRatio: pixelRatio,
-        quality: 0.90,
+        quality: 0.92,
         backgroundColor: posterSettings.bgColor || '#ffffff',
         cacheBust: true,
         fontEmbedCSS: fontEmbedCSS,
       });
-      return dataUrl;
+
+      // Inject standard 300 DPI JFIF metadata so Photoshop & print tools detect 300 DPI immediately
+      return setDpiInJpegDataUrl(rawDataUrl, 300);
     } catch (err) {
-      console.error('Failed to capture high-res canvas as JPEG for order email:', err);
+      console.error('Failed to capture high-res canvas at 300 DPI, attempting safe fallback:', err);
       try {
-        const fallbackRatio = 4;
+        const baseWidth = posterSettings.aspectRatio === '3:2' ? 820 : 560;
+        const elemWidth = posterRef.current.offsetWidth || baseWidth;
+        const fallbackRatio = posterSettings.aspectRatio === '22:30' ? (2598 / elemWidth) : 4;
         const fontEmbedCSS = await getFontEmbedCSS(posterRef.current);
-        return await toJpeg(posterRef.current, {
+        const fallbackDataUrl = await toJpeg(posterRef.current, {
           pixelRatio: fallbackRatio,
           quality: 0.90,
           backgroundColor: posterSettings.bgColor || '#ffffff',
           fontEmbedCSS: fontEmbedCSS,
         });
+        return setDpiInJpegDataUrl(fallbackDataUrl, 300);
       } catch (fallbackErr) {
         console.error('Fallback export also failed:', fallbackErr);
         return null;
