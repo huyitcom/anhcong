@@ -47,6 +47,9 @@ const TEMPLATE_THUMBNAIL_IMAGES: Record<string, string> = {
   'standee-sweet-8': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-15.jpg',
   'standee-editorial-4': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-16.jpg',
   'standee-arch-3': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-17.jpg',
+  'standee-love-story-5': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-18.jpg',
+  'standee-welcome-stacked-3': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-19.jpg',
+  'standee-welcome-grid-6': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-20.jpg',
 };
 
 export const TemplateThumbnail: React.FC<{ id: string; className?: string }> = ({ id, className = '' }) => {
@@ -130,6 +133,26 @@ export const TemplateThumbnail: React.FC<{ id: string; className?: string }> = (
         <div className="w-full flex-1 flex flex-col gap-0.5">
           <div className="w-full h-1/2 bg-stone-200 rounded-xs"></div>
           <div className="w-full h-1/2 bg-stone-200 rounded-xs"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (id === 'standee-welcome-stacked-3') {
+    return (
+      <div className={`w-full h-full bg-white flex flex-col p-1 border border-stone-200 select-none ${className}`}>
+        <div className="w-full flex flex-col items-center justify-center text-center mt-1 mb-1.5">
+          <div className="text-[3.5px] font-sans font-bold uppercase leading-[1.3] mb-1">WELCOME TO<br/>THE WEDDING OF</div>
+          <div className="w-[8px] h-[0.5px] bg-stone-800 mb-1"></div>
+          <div className="text-[3px] font-sans font-bold mb-[3px] tracking-widest">30 - 06 - 2026</div>
+          <div className="text-[7px] font-serif uppercase leading-none">HOÀNG ANH</div>
+          <div className="text-[3.5px] my-[1px]">*</div>
+          <div className="text-[7px] font-serif uppercase leading-none">HÀ VY</div>
+        </div>
+        <div className="w-full flex-1 flex flex-col gap-[2.5px] px-0.5 pb-0.5">
+          <div className="w-full flex-1 bg-stone-200"></div>
+          <div className="w-full flex-1 bg-stone-200"></div>
+          <div className="w-full flex-1 bg-stone-200"></div>
         </div>
       </div>
     );

@@ -14,6 +14,7 @@ import {
   Mail
 } from 'lucide-react';
 import { TextConfig, PosterSettings } from '../types';
+import { TEMPLATES } from '../data/constants';
 import confetti from 'canvas-confetti';
 
 export interface GatePhotoMaterial {
@@ -25,6 +26,54 @@ export interface GatePhotoMaterial {
   imagePreview: string;
   popular?: boolean;
 }
+
+export const ALBUM_BOX_MATERIALS: GatePhotoMaterial[] = [
+  {
+    id: 'hop-trang-guong',
+    name: 'Hộp album 13x18 tráng gương',
+    shortDesc: 'Hộp đựng album với mặt nắp tráng gương pha lê in hình sắc nét sang trọng.',
+    highlightTag: 'Cao Cấp ✨',
+    highlightColor: 'bg-sky-100 text-sky-800 border-sky-200',
+    popular: true,
+    imagePreview: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-13.jpg'
+  },
+  {
+    id: 'hop-dang-rut',
+    name: 'Hộp album 13x18 dạng rút',
+    shortDesc: 'Hộp rút tiện lợi, bảo vệ album an toàn với thiết kế bao da bọc ngoài thanh lịch.',
+    highlightTag: 'Gọn Gàng 📦',
+    highlightColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    imagePreview: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-12.jpg'
+  },
+  {
+    id: 'hop-nap-gai',
+    name: 'Hộp album 13x18 nắp gài',
+    shortDesc: 'Hộp nắp gài nam châm chắc chắn, thiết kế cổ điển đóng mở dễ dàng.',
+    highlightTag: 'Bán chạy ⭐',
+    highlightColor: 'bg-amber-100 text-amber-800 border-amber-200',
+    imagePreview: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-14.jpg'
+  }
+];
+
+export const STANDEE_MATERIALS: GatePhotoMaterial[] = [
+  {
+    id: 'standee-60x160',
+    name: 'Standee khổ 60x160',
+    shortDesc: 'Standee chữ X hoặc cuốn nhôm kích thước 60x160cm nhỏ gọn, dễ dàng di chuyển.',
+    highlightTag: 'Gọn Nhẹ 🎈',
+    highlightColor: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    imagePreview: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-18.jpg'
+  },
+  {
+    id: 'standee-80x180',
+    name: 'Standee khổ 80x180',
+    shortDesc: 'Standee chữ X hoặc cuốn nhôm kích thước 80x180cm tiêu chuẩn, nổi bật ấn tượng.',
+    highlightTag: 'Phổ Biến ⭐',
+    highlightColor: 'bg-amber-100 text-amber-800 border-amber-200',
+    popular: true,
+    imagePreview: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-17.jpg'
+  }
+];
 
 export const GATE_PHOTO_MATERIALS: GatePhotoMaterial[] = [
   {
@@ -100,6 +149,7 @@ interface OrderPrintModalProps {
   onClose: () => void;
   textConfig: TextConfig;
   posterSettings: PosterSettings;
+  templateId: string;
   onGetDesignDataUrl?: () => Promise<string | null>;
 }
 
@@ -108,6 +158,7 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
   onClose,
   textConfig,
   posterSettings,
+  templateId,
   onGetDesignDataUrl,
 }) => {
   const [selectedMaterialId, setSelectedMaterialId] = useState<string>('ep-go-laminate');
@@ -127,7 +178,17 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
 
   if (!isOpen) return null;
 
-  const currentMaterial = GATE_PHOTO_MATERIALS.find((m) => m.id === selectedMaterialId) || GATE_PHOTO_MATERIALS[0];
+  const currentTemplate = TEMPLATES.find(t => t.id === templateId);
+  const isAlbumBox = currentTemplate?.category === 'hop-album';
+  const isStandee = currentTemplate?.category === 'standee';
+  const materialsList = isAlbumBox 
+    ? ALBUM_BOX_MATERIALS 
+    : isStandee 
+      ? STANDEE_MATERIALS 
+      : GATE_PHOTO_MATERIALS;
+
+  // Use the default selected material ID for the current category if the existing one is not found
+  const currentMaterial = materialsList.find((m) => m.id === selectedMaterialId) || materialsList[0];
 
   // Map Aspect Ratio to Size String (compact numbers only: 60x90, 60x120, etc.)
   const sizeMap: Record<string, string> = {
@@ -279,7 +340,7 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm sm:text-base font-bold text-stone-900 flex items-center gap-2">
                     <span className="w-6 h-6 rounded-full bg-sky-600 text-white text-xs flex items-center justify-center font-semibold">1</span>
-                    Chọn Chất Liệu Ảnh Cổng Cưới
+                    {isAlbumBox ? "Chọn Loại Hộp Album" : isStandee ? "Chọn Kích Thước Standee" : "Chọn Chất Liệu Ảnh Cổng Cưới"}
                   </h3>
                   <a
                     href="https://www.photobookvietnam.net/sanpham-epgo"
@@ -293,7 +354,7 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-4">
-                  {GATE_PHOTO_MATERIALS.map((mat) => {
+                  {materialsList.map((mat) => {
                     const isSelected = mat.id === selectedMaterialId;
                     return (
                       <div
@@ -342,13 +403,6 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
                             <p className="text-[11px] text-stone-500 mt-1 leading-relaxed line-clamp-2">
                               {mat.shortDesc}
                             </p>
-                          </div>
-
-                          <div className="mt-2.5 pt-2 border-t border-stone-100 flex items-center justify-between">
-                            <span className={`text-[11px] font-medium ${isSelected ? 'text-sky-600 font-bold' : 'text-stone-400 group-hover:text-stone-600'}`}>
-                              {isSelected ? '✓ Đã chọn' : 'Bấm để chọn'}
-                            </span>
-                            <span className="text-[10px] text-stone-400">Ép gỗ cao cấp</span>
                           </div>
                         </div>
                       </div>
@@ -505,7 +559,7 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
                         className="text-xs text-stone-500 cursor-pointer hover:text-stone-700 transition font-medium flex items-center gap-1"
                         onClick={() => setIsAdminMode(true)}
                       >
-                        <span>🔒</span> <span className="underline">Tải file ảnh cổng</span>
+                        <span>🔒</span> <span className="underline">{isAlbumBox ? "Tải file hộp album" : currentTemplate?.category === 'standee' ? "Tải file standee" : "Tải file ảnh cổng"}</span>
                       </div>
                     )}
 

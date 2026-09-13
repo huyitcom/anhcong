@@ -278,6 +278,7 @@ export default function App() {
         onClose={() => setIsOrderModalOpen(false)}
         textConfig={textConfig}
         posterSettings={posterSettings}
+        templateId={templateId}
         onGetDesignDataUrl={handleGetDesignDataUrl}
       />
     </div>

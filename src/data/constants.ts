@@ -176,6 +176,33 @@ export const TEMPLATES: TemplateDefinition[] = [
     aspectRatio: '80:180',
     category: 'standee',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-17.jpg'
+  },
+  {
+    id: 'standee-love-story-5',
+    name: 'Mẫu số 18',
+    description: 'Standee 80x180 cm: Layout Love Story 5 ảnh phong cách tối giản thanh lịch.',
+    slotCount: 5,
+    aspectRatio: '80:180',
+    category: 'standee',
+    previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-18.jpg'
+  },
+  {
+    id: 'standee-welcome-stacked-3',
+    name: 'Mẫu số 19',
+    description: 'Standee 80x180 cm: Thiết kế tối giản với 3 hình ngang xếp tầng, tiêu đề Welcome to the wedding.',
+    slotCount: 3,
+    aspectRatio: '80:180',
+    category: 'standee',
+    previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-19.jpg'
+  },
+  {
+    id: 'standee-welcome-grid-6',
+    name: 'Mẫu số 20',
+    description: 'Standee 80x180 cm: Thiết kế dạng lưới 6 hình đều nhau với tiêu đề Welcome to the Wedding.',
+    slotCount: 6,
+    aspectRatio: '80:180',
+    category: 'standee',
+    previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-20.jpg'
   }
 ];
 

@@ -69,7 +69,10 @@ export type TemplateId =
   | 'asymmetric-7'
   | 'standee-sweet-8'
   | 'standee-editorial-4'
-  | 'standee-arch-3';
+  | 'standee-arch-3'
+  | 'standee-love-story-5'
+  | 'standee-welcome-stacked-3'
+  | 'standee-welcome-grid-6';
 
 export type TemplateCategory = 'anh-cong' | 'hop-album' | 'standee';
 

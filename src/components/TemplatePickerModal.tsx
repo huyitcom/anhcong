@@ -111,10 +111,6 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
               Standee ({TEMPLATES.filter((t) => t.category === 'standee').length})
             </button>
           </div>
-
-          <span className="hidden md:inline-block text-xs text-stone-400 italic shrink-0">
-            * Bấm vào mẫu để áp dụng ngay lên bản thiết kế
-          </span>
         </div>
 
         {/* Templates Grid Content */}
@@ -176,21 +172,6 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
                     <h3 className="font-bold text-stone-800 text-xs truncate group-hover:text-sky-600 transition">
                       {tmpl.name}
                     </h3>
-                    <span
-                      className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0 ${
-                        tmpl.category === 'anh-cong'
-                          ? isLandscape ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
-                          : tmpl.category === 'hop-album'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-rose-100 text-rose-800'
-                      }`}
-                    >
-                      {tmpl.category === 'anh-cong'
-                        ? isLandscape ? 'Ảnh cổng • 90x60' : 'Ảnh cổng • 60x90'
-                        : tmpl.category === 'hop-album'
-                        ? 'Hộp album • 22x30'
-                        : 'Standee • 80x180'}
-                    </span>
                   </div>
                 </div>
               );
@@ -203,7 +184,7 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
           <span className="text-xs text-stone-500">
             <span className="hidden sm:inline">Tổng cộng: </span>
             <strong className="text-stone-800">{TEMPLATES.length} mẫu</strong>
-            <span className="hidden sm:inline"> thiết kế (Đã tối ưu hóa bố cục in ấn)</span>
+            <span className="hidden sm:inline"> thiết kế</span>
           </span>
           <button
             onClick={onClose}

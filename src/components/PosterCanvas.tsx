@@ -1792,6 +1792,223 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
             </div>
           </div>
         )}
+
+        {/* Mẫu 19: Standee 80x180 Love Story */}
+        {templateId === 'standee-love-story-5' && (
+          <div className="w-full h-full flex flex-col" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Row 1 */}
+            <div className="w-full h-[37%] flex" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-[45%] h-full flex flex-col justify-between shrink-0">
+                <div className="w-full flex flex-col pt-3 pl-2 select-none">
+                  <div
+                    style={{
+                      fontFamily: textConfig.taglineFont || 'Bodoni Moda, serif',
+                      color: textConfig.taglineColor || '#7d3840',
+                      lineHeight: 1.1,
+                    }}
+                    className="text-4xl sm:text-5xl uppercase font-serif"
+                  >
+                    LOVE<br/>STORY
+                  </div>
+                  <div className="w-[80%] h-px bg-[#7d3840] opacity-40 my-3"></div>
+                  <div
+                    style={{
+                      fontFamily: textConfig.namesFont || 'Bodoni Moda, serif',
+                      color: textConfig.namesColor || '#7d3840',
+                      letterSpacing: '0.1em',
+                    }}
+                    className="text-[10px] sm:text-xs font-semibold uppercase pr-2"
+                  >
+                    {`${textConfig.groomName || 'HOÀNG ANH'} ${textConfig.connector || '&'} ${textConfig.brideName || 'THU UYÊN'}`}
+                  </div>
+                </div>
+                <div className="w-full h-[60%] min-h-0">
+                  {renderSlot(0, 'w-full h-full')}
+                </div>
+              </div>
+              <div className="w-[55%] h-full min-h-0">
+                {renderSlot(1, 'w-full h-full')}
+              </div>
+            </div>
+            
+            {/* Row 2 */}
+            <div className="w-full h-[28%] flex items-center bg-white" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-[85%] h-full min-h-0">
+                {renderSlot(2, 'w-full h-full')}
+              </div>
+              <div className="w-[15%] h-full flex items-center justify-center shrink-0">
+                <div
+                  style={{
+                    fontFamily: textConfig.dateFont || 'Bodoni Moda, serif',
+                    color: textConfig.taglineColor || '#7d3840',
+                    letterSpacing: '0.3em',
+                    writingMode: 'vertical-rl',
+                    transform: 'rotate(180deg)'
+                  }}
+                  className="text-xs sm:text-sm font-semibold uppercase whitespace-nowrap"
+                >
+                  EST. {textConfig.dateText?.split(/[-/.]/)[2] || '2026'}
+                </div>
+              </div>
+            </div>
+
+            {/* Row 3 */}
+            <div className="w-full h-[35%] flex" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-[45%] h-full flex flex-col justify-end min-h-0 pb-1 pl-1">
+                <div className="w-full h-[65%] min-h-0">
+                  {renderSlot(3, 'w-full h-full')}
+                </div>
+              </div>
+              <div className="w-[55%] h-full min-h-0">
+                {renderSlot(4, 'w-full h-full')}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mẫu 20: Standee 80x180 Welcome Stacked */}
+        {templateId === 'standee-welcome-stacked-3' && (
+          <div className="w-full h-full flex flex-col bg-white overflow-hidden" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Top Typography */}
+            <div className="w-full h-[32%] flex flex-col items-center justify-center pt-2 sm:pt-4 select-none shrink-0 text-center">
+              <div
+                style={{
+                  fontFamily: textConfig.taglineFont || 'Inter, sans-serif',
+                  color: textConfig.taglineColor || '#1c1917',
+                  letterSpacing: '0.15em',
+                  lineHeight: 1.4,
+                }}
+                className="text-[9px] sm:text-[11px] font-bold uppercase mb-2"
+              >
+                WELCOME TO<br/>THE WEDDING OF
+              </div>
+              
+              <div className="w-6 h-[1px] bg-[#1c1917] mb-2"></div>
+
+              <div
+                style={{
+                  fontFamily: textConfig.dateFont || 'Inter, sans-serif',
+                  color: textConfig.dateColor || '#1c1917',
+                  letterSpacing: '0.1em',
+                }}
+                className="text-[8px] sm:text-[10px] font-bold mb-3 sm:mb-4"
+              >
+                {textConfig.dateText ? textConfig.dateText.replace(/\n/g, ' - ') : '30 - 06 - 2026'}
+              </div>
+
+              <div
+                style={{
+                  fontFamily: textConfig.namesFont || 'Playfair Display, serif',
+                  color: textConfig.namesColor || '#1c1917',
+                  lineHeight: 1,
+                }}
+                className="text-3xl sm:text-4xl font-normal uppercase"
+              >
+                {textConfig.groomName || 'HOÀNG ANH'}
+              </div>
+              <div
+                style={{
+                  fontFamily: textConfig.connectorFont || 'Playfair Display, serif',
+                  color: textConfig.namesColor || '#1c1917',
+                  lineHeight: 1,
+                }}
+                className="text-lg sm:text-xl my-1.5 sm:my-2 italic"
+              >
+                {textConfig.connector || '*'}
+              </div>
+              <div
+                style={{
+                  fontFamily: textConfig.namesFont || 'Playfair Display, serif',
+                  color: textConfig.namesColor || '#1c1917',
+                  lineHeight: 1,
+                }}
+                className="text-3xl sm:text-4xl font-normal uppercase"
+              >
+                {textConfig.brideName || 'HÀ VY'}
+              </div>
+            </div>
+
+            {/* 3 Stacked Photos */}
+            <div className="w-full flex-1 flex flex-col px-4 pb-4 sm:px-6 sm:pb-6 pt-1 sm:pt-2 min-h-0" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="flex-1 min-h-0 w-full">
+                {renderSlot(0, 'w-full h-full')}
+              </div>
+              <div className="flex-1 min-h-0 w-full">
+                {renderSlot(1, 'w-full h-full')}
+              </div>
+              <div className="flex-1 min-h-0 w-full">
+                {renderSlot(2, 'w-full h-full')}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mẫu 21: Standee 80x180 Welcome Grid */}
+        {templateId === 'standee-welcome-grid-6' && (
+          <div className="w-full h-full flex flex-col p-4 bg-white" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Top Typography */}
+            <div className="w-full flex flex-col items-center justify-center py-6 select-none shrink-0">
+              <div
+                style={{
+                  fontFamily: textConfig.namesFont || 'Playfair Display, serif',
+                  color: textConfig.namesColor || '#1c1917',
+                  lineHeight: 1.1,
+                }}
+                className="text-[4rem] sm:text-[4.5rem] font-normal"
+              >
+                Welcome
+              </div>
+              <div
+                style={{
+                  fontFamily: textConfig.taglineFont || 'Bodoni Moda, serif',
+                  color: textConfig.taglineColor || '#44403c',
+                  letterSpacing: '0.2em',
+                }}
+                className="text-[9px] sm:text-[10px] font-medium tracking-[0.2em] uppercase mb-4 mt-1"
+              >
+                TO THE WEDDING OF
+              </div>
+              <div className="w-[85%] h-[1px] bg-stone-300 mb-4"></div>
+              <div
+                style={{
+                  fontFamily: textConfig.subtextFont || 'Bodoni Moda, serif',
+                  color: textConfig.subtextColor || '#1c1917',
+                  letterSpacing: '0.05em',
+                }}
+                className="text-sm sm:text-base font-bold uppercase"
+              >
+                {`${textConfig.groomName || 'ĐỨC TUẤN'} ${textConfig.connector || '&'} ${textConfig.brideName || 'MINH THU'}`}
+              </div>
+              <div
+                style={{
+                  fontFamily: textConfig.dateFont || 'Bodoni Moda, serif',
+                  color: textConfig.dateColor || '#44403c',
+                  letterSpacing: '0.15em',
+                }}
+                className="text-sm sm:text-[15px] font-semibold tracking-[0.15em] mt-2"
+              >
+                {textConfig.dateText ? textConfig.dateText.replace(/\n/g, ' - ') : '20 - 10 - 2027'}
+              </div>
+            </div>
+
+            {/* Grid 2x3 */}
+            <div className="w-full flex-1 min-h-0 flex flex-col" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="flex-1 flex min-h-0" style={{ gap: `${posterSettings.gap}px` }}>
+                <div className="w-1/2 h-full min-h-0">{renderSlot(0, 'w-full h-full')}</div>
+                <div className="w-1/2 h-full min-h-0">{renderSlot(1, 'w-full h-full')}</div>
+              </div>
+              <div className="flex-1 flex min-h-0" style={{ gap: `${posterSettings.gap}px` }}>
+                <div className="w-1/2 h-full min-h-0">{renderSlot(2, 'w-full h-full')}</div>
+                <div className="w-1/2 h-full min-h-0">{renderSlot(3, 'w-full h-full')}</div>
+              </div>
+              <div className="flex-1 flex min-h-0" style={{ gap: `${posterSettings.gap}px` }}>
+                <div className="w-1/2 h-full min-h-0">{renderSlot(4, 'w-full h-full')}</div>
+                <div className="w-1/2 h-full min-h-0">{renderSlot(5, 'w-full h-full')}</div>
+              </div>
+            </div>
+            <div className="h-4 w-full shrink-0"></div>
+          </div>
+        )}
       </div>
       </div>
     </div>
