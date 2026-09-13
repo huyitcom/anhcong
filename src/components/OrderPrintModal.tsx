@@ -502,10 +502,10 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
                       </div>
                     ) : (
                       <div 
-                        className="text-xs text-stone-500 cursor-pointer hover:text-stone-700 transition"
+                        className="text-xs text-stone-500 cursor-pointer hover:text-stone-700 transition font-medium flex items-center gap-1"
                         onClick={() => setIsAdminMode(true)}
                       >
-                        🔒 File thiết kế sẽ được gửi trực tiếp đến hệ thống kỹ thuật Photobook Vietnam để kiểm tra chuẩn in & tiến hành gia công.
+                        <span>🔒</span> <span className="underline">Tải file ảnh cổng</span>
                       </div>
                     )}
 
