@@ -43,7 +43,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
   // --- Responsive Scaling Logic ---
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
-  const baseWidth = posterSettings.aspectRatio === '3:2' ? 820 : 560;
+  const baseWidth = posterSettings.aspectRatio === '3:2' ? 820 : posterSettings.aspectRatio === '80:180' ? 520 : 560;
   
   const getBaseHeight = (ratioStr: string, w: number) => {
     const parts = ratioStr.split(':');
@@ -252,7 +252,9 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
           activeSlotIndex === index ? 'ring-2 ring-sky-500 ring-offset-1 z-10' : ''
         } ${isPanningThis ? 'cursor-grabbing ring-2 ring-sky-400' : isFilled ? 'cursor-grab' : 'cursor-pointer'} ${className}`}
         style={{
-          borderRadius: `${posterSettings.cornerRadius}px`,
+          borderRadius: className.includes('rounded-t-full')
+            ? '9999px 9999px 0 0'
+            : `${posterSettings.cornerRadius}px`,
           backgroundColor: '#f5f5f4',
           touchAction: 'none',
           userSelect: 'none',
@@ -1558,6 +1560,235 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
               </div>
               <div className="w-1/3 h-full min-h-0">{renderSlot(5, 'w-full h-full')}</div>
               <div className="w-1/3 h-full min-h-0">{renderSlot(6, 'w-full h-full')}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Mẫu 15: Standee 80x180 Sweet Moments */}
+        {templateId === 'standee-sweet-8' && (
+          <div className="w-full h-full flex flex-col" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Top Typography: SWEET MOMENTS */}
+            <div className="w-full flex flex-col items-center justify-center py-2 text-center select-none shrink-0">
+              <div className="flex items-center justify-center">
+                <span
+                  style={{
+                    fontFamily: 'Great Vibes, cursive',
+                    color: textConfig.taglineColor || '#92400e',
+                  }}
+                  className="text-4xl sm:text-5xl leading-none mr-1"
+                >
+                  S
+                </span>
+                <span
+                  style={{
+                    fontFamily: textConfig.namesFont || 'Bodoni Moda, serif',
+                    color: textConfig.taglineColor || '#1c1917',
+                    letterSpacing: '0.22em',
+                  }}
+                  className="text-lg sm:text-xl font-normal tracking-[0.22em] translate-y-0.5"
+                >
+                  WEET
+                </span>
+              </div>
+              <div
+                style={{
+                  fontFamily: textConfig.taglineFont || 'Bodoni Moda, serif',
+                  color: textConfig.taglineColor || '#1c1917',
+                  letterSpacing: '0.35em',
+                }}
+                className="text-[11px] sm:text-xs font-semibold uppercase tracking-[0.35em] mt-0.5"
+              >
+                {textConfig.tagline && textConfig.tagline !== 'SAVE THE DATE' ? textConfig.tagline : 'MOMENTS'}
+              </div>
+            </div>
+
+            {/* Top Featured Hero Photo */}
+            <div className="w-full h-[29%] min-h-0">
+              {renderSlot(0, 'w-full h-full')}
+            </div>
+
+            {/* Bottom Multi-Photo Garden Collage */}
+            <div className="w-full flex-1 min-h-0 flex flex-col" style={{ gap: `${posterSettings.gap}px` }}>
+              {/* Row 1: Left 44% vertical couple, Right 56% (2 stacked photos) */}
+              <div className="w-full h-[33%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+                <div className="w-[44%] h-full min-h-0">{renderSlot(1, 'w-full h-full')}</div>
+                <div className="w-[56%] h-full min-h-0 flex flex-col" style={{ gap: `${posterSettings.gap}px` }}>
+                  <div className="w-full h-1/2 min-h-0">{renderSlot(2, 'w-full h-full')}</div>
+                  <div className="w-full h-1/2 min-h-0">{renderSlot(3, 'w-full h-full')}</div>
+                </div>
+              </div>
+
+              {/* Row 2: Left 58% garden scene, Right 42% standing couple */}
+              <div className="w-full h-[33%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+                <div className="w-[58%] h-full min-h-0">{renderSlot(4, 'w-full h-full')}</div>
+                <div className="w-[42%] h-full min-h-0">{renderSlot(5, 'w-full h-full')}</div>
+              </div>
+
+              {/* Row 3: Left 45% solo groom, Right 55% solo bride */}
+              <div className="w-full h-[34%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+                <div className="w-[45%] h-full min-h-0">{renderSlot(6, 'w-full h-full')}</div>
+                <div className="w-[55%] h-full min-h-0">{renderSlot(7, 'w-full h-full')}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mẫu 16: Standee 80x180 Editorial Save The Date */}
+        {templateId === 'standee-editorial-4' && (
+          <div className="w-full h-full flex flex-col" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Top Typography: SAVE THE DATE & DATE */}
+            <div className="w-full flex flex-col items-center justify-center py-2.5 text-center select-none shrink-0">
+              <div
+                style={{
+                  fontFamily: textConfig.taglineFont || 'Bodoni Moda, serif',
+                  color: textConfig.taglineColor || '#1c1917',
+                  letterSpacing: '0.22em',
+                }}
+                className="text-xl sm:text-2xl font-normal tracking-[0.22em] uppercase"
+              >
+                {textConfig.tagline || 'SAVE THE DATE'}
+              </div>
+              <div
+                style={{
+                  fontFamily: textConfig.dateFont || 'Bodoni Moda, serif',
+                  color: textConfig.dateColor || '#292524',
+                  letterSpacing: '0.25em',
+                }}
+                className="text-xs sm:text-sm font-medium tracking-[0.25em] mt-1.5"
+              >
+                {textConfig.dateText ? textConfig.dateText.replace(/\./g, ' - ').replace(/\n/g, ' - ') : '30 - 06 - 2026'}
+              </div>
+            </div>
+
+            {/* Photo 0 (Top Horizontal) */}
+            <div className="w-full h-[25%] min-h-0">
+              {renderSlot(0, 'w-full h-full')}
+            </div>
+
+            {/* Middle Editorial 2-Column Section (Groom + Photo 1, Photo 2 + Bride) */}
+            <div className="w-full h-[34%] min-h-0 flex" style={{ gap: `${posterSettings.gap}px` }}>
+              {/* Left Column: Groom label on top, Photo 1 below */}
+              <div className="w-1/2 h-full min-h-0 flex flex-col justify-between" style={{ gap: `${posterSettings.gap}px` }}>
+                <div className="flex flex-col justify-center px-2 py-1 select-none">
+                  <span
+                    style={{
+                      fontFamily: 'Great Vibes, cursive',
+                      color: '#44403c',
+                    }}
+                    className="text-3xl sm:text-4xl italic leading-none"
+                  >
+                    Groom
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: textConfig.namesFont || 'Bodoni Moda, serif',
+                      color: textConfig.namesColor || '#1c1917',
+                      letterSpacing: '0.15em',
+                    }}
+                    className="text-xs sm:text-sm font-semibold uppercase tracking-[0.15em] mt-1"
+                  >
+                    {textConfig.groomName || 'HOÀNG ANH'}
+                  </span>
+                </div>
+                <div className="w-full flex-1 min-h-0">
+                  {renderSlot(1, 'w-full h-full')}
+                </div>
+              </div>
+
+              {/* Right Column: Photo 2 on top, Bride label below */}
+              <div className="w-1/2 h-full min-h-0 flex flex-col justify-between" style={{ gap: `${posterSettings.gap}px` }}>
+                <div className="w-full flex-1 min-h-0">
+                  {renderSlot(2, 'w-full h-full')}
+                </div>
+                <div className="flex flex-col justify-center px-2 py-1 select-none">
+                  <span
+                    style={{
+                      fontFamily: 'Great Vibes, cursive',
+                      color: '#44403c',
+                    }}
+                    className="text-3xl sm:text-4xl italic leading-none"
+                  >
+                    Bride
+                  </span>
+                  <span
+                    style={{
+                      fontFamily: textConfig.namesFont || 'Bodoni Moda, serif',
+                      color: textConfig.namesColor || '#1c1917',
+                      letterSpacing: '0.15em',
+                    }}
+                    className="text-xs sm:text-sm font-semibold uppercase tracking-[0.15em] mt-1"
+                  >
+                    {textConfig.brideName || 'THU HÀ'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Hero Photo (Slot 3) */}
+            <div className="w-full flex-1 min-h-0">
+              {renderSlot(3, 'w-full h-full')}
+            </div>
+          </div>
+        )}
+
+        {/* Mẫu 17: Standee 80x180 Arch Frame Vows */}
+        {templateId === 'standee-arch-3' && (
+          <div className="w-full h-full flex flex-col" style={{ gap: `${posterSettings.gap}px` }}>
+            {/* Top Header Row: save the date & date */}
+            <div className="w-full flex items-baseline justify-between px-3 pt-2 pb-1 select-none shrink-0">
+              <div
+                style={{
+                  fontFamily: 'Great Vibes, cursive',
+                  color: textConfig.taglineColor || '#1c1917',
+                }}
+                className="text-3xl sm:text-4xl italic lowercase"
+              >
+                {textConfig.tagline ? textConfig.tagline.toLowerCase() : 'save the date'}
+              </div>
+              <div
+                style={{
+                  fontFamily: textConfig.dateFont || 'Bodoni Moda, serif',
+                  color: textConfig.dateColor || '#1c1917',
+                  letterSpacing: '0.2em',
+                }}
+                className="text-xs sm:text-sm font-medium tracking-[0.2em]"
+              >
+                {textConfig.dateText ? textConfig.dateText.replace(/\n/g, '.') : '30.04.2026'}
+              </div>
+            </div>
+
+            {/* Arch Photo Hero Frame */}
+            <div className="w-full h-[43%] min-h-0 flex items-center justify-center px-2 py-1">
+              <div className="w-[88%] h-full rounded-t-full border border-stone-300/80 p-2 sm:p-2.5 flex items-center justify-center">
+                <div className="w-full h-full rounded-t-full overflow-hidden">
+                  {renderSlot(0, 'w-full h-full rounded-t-full')}
+                </div>
+              </div>
+            </div>
+
+            {/* Handwritten Romance Quote / Vow */}
+            <div className="w-full flex flex-col items-center justify-center px-4 py-2 text-center select-none shrink-0">
+              <p
+                style={{
+                  fontFamily: 'Dancing Script, cursive',
+                  color: textConfig.subtextColor || '#292524',
+                  lineHeight: 1.6,
+                }}
+                className="text-sm sm:text-base max-w-[94%] mx-auto font-medium"
+              >
+                {textConfig.subtext ||
+                  'Từ khoảnh khắc nhìn thấy nhau, chúng mình tin vào một tình yêu an yên và bền vững cùng trưởng thành gìn giữ bình yên và dựng xây một mái nhà trọn vẹn'}
+              </p>
+            </div>
+
+            {/* Bottom 2 Stacked Horizontal Photos */}
+            <div className="w-full flex-1 min-h-0 flex flex-col" style={{ gap: `${posterSettings.gap}px` }}>
+              <div className="w-full h-1/2 min-h-0">
+                {renderSlot(1, 'w-full h-full')}
+              </div>
+              <div className="w-full h-1/2 min-h-0">
+                {renderSlot(2, 'w-full h-full')}
+              </div>
             </div>
           </div>
         )}

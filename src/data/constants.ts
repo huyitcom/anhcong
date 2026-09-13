@@ -30,6 +30,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: '10 khung ảnh bố cục bao quanh cụm chữ trung tâm nghệ thuật',
     slotCount: 10,
     aspectRatio: '2:3',
+    category: 'anh-cong',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-1.jpg'
   },
   {
@@ -38,6 +39,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: '1 ảnh lớn phía trên, 12 ảnh nhỏ lưới 4x3 ở giữa và cụm chữ nghệ thuật Love Trip sang trọng phía dưới',
     slotCount: 13,
     aspectRatio: '2:3',
+    category: 'anh-cong',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-2.jpg'
   },
   {
@@ -46,6 +48,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'Phong cách bìa tạp chí Hàn Quốc với 2 ảnh bên trái lồng chữ nghệ thuật và 3 ảnh xếp dọc bên phải',
     slotCount: 5,
     aspectRatio: '2:3',
+    category: 'anh-cong',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-3.jpg'
   },
   {
@@ -54,6 +57,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: '6 khung ảnh bố cục so le nghệ thuật, phần tên dâu rể & Save the Date viết cách điệu phía dưới',
     slotCount: 6,
     aspectRatio: '2:3',
+    category: 'anh-cong',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-4.jpg'
   },
   {
@@ -62,6 +66,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: '8 khung ảnh xếp tầng kết hợp chữ L-O-V-E cắt lồng nghệ thuật ở khoảng giữa các khung',
     slotCount: 8,
     aspectRatio: '2:3',
+    category: 'anh-cong',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-5.jpg'
   },
   {
@@ -70,6 +75,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'Bố cục khung ảnh xếp hình trái tim nghệ thuật quanh bức ảnh cưới trung tâm',
     slotCount: 19,
     aspectRatio: '2:3',
+    category: 'anh-cong',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-6.jpg'
   },
   {
@@ -78,6 +84,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'Bố cục ngang 90x60 cm: 2 ảnh chân dung lớn 2 bên, ở giữa là lưới 8 ảnh nhỏ (2x4) kèm chữ nghệ thuật trên ảnh',
     slotCount: 10,
     aspectRatio: '3:2',
+    category: 'anh-cong',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-7.jpg'
   },
   {
@@ -86,6 +93,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'Bố cục ngang 90x60 cm: 2 ảnh xếp dọc bên trái, bên phải là cụm chữ thiệp cưới lãng mạn cùng lưới 4 ảnh (2x2)',
     slotCount: 6,
     aspectRatio: '3:2',
+    category: 'anh-cong',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-8.jpg'
   },
   {
@@ -94,6 +102,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'Bố cục ngang 90x60 cm: 1 ảnh lớn chiếm 2/3 khung hình bên trái có tiêu đề phía trên, bên phải là lưới 7 ảnh nhỏ cùng huy hiệu trái tim Love forever',
     slotCount: 8,
     aspectRatio: '3:2',
+    category: 'anh-cong',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-9.jpg'
   },
   {
@@ -102,6 +111,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'Bố cục ngang 90x60 cm: 11 khung ảnh phong cách tạp chí du lịch lãng mạn, ảnh tháp Big Ben trung tâm lồng chữ Love Trip',
     slotCount: 11,
     aspectRatio: '3:2',
+    category: 'anh-cong',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-10.jpg'
   },
   {
@@ -110,6 +120,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'Bố cục đứng 8 khung ảnh xếp lưới 3x3 với phần chữ nằm ở trung tâm',
     slotCount: 8,
     aspectRatio: '22:30',
+    category: 'hop-album',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-11.jpg'
   },
   {
@@ -118,6 +129,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'Bố cục đứng 3 khung: 1 ảnh lớn phía trên, phần chữ nổi bật ở giữa và 2 ảnh nhỏ bên dưới',
     slotCount: 3,
     aspectRatio: '22:30',
+    category: 'hop-album',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-12.jpg'
   },
   {
@@ -126,6 +138,7 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'Bố cục đứng 8 khung ảnh xếp theo khối hiện đại, kèm khối chữ ngày tháng nổi bật',
     slotCount: 8,
     aspectRatio: '22:30',
+    category: 'hop-album',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-13.jpg'
   },
   {
@@ -134,7 +147,35 @@ export const TEMPLATES: TemplateDefinition[] = [
     description: 'Bố cục đứng 7 khung ảnh xếp lưới 3x3 so le đan xen cùng các khoảng trống chứa text nghệ thuật',
     slotCount: 7,
     aspectRatio: '22:30',
+    category: 'hop-album',
     previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-14.jpg'
+  },
+  {
+    id: 'standee-sweet-8',
+    name: 'Mẫu số 15',
+    description: 'Standee 80x180 cm: Tiêu đề Sweet Moments sang trọng, 1 ảnh lớn phía trên và bố cục 7 ảnh cưới sân vườn bên dưới',
+    slotCount: 8,
+    aspectRatio: '80:180',
+    category: 'standee',
+    previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-15.jpg'
+  },
+  {
+    id: 'standee-editorial-4',
+    name: 'Mẫu số 16',
+    description: 'Standee 80x180 cm: Save The Date phong cách tạp chí cao cấp, so le 4 ảnh cùng tên Groom Hoàng Anh & Bride Thu Hà',
+    slotCount: 4,
+    aspectRatio: '80:180',
+    category: 'standee',
+    previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-16.jpg'
+  },
+  {
+    id: 'standee-arch-3',
+    name: 'Mẫu số 17',
+    description: 'Standee 80x180 cm: Khung vòm Arch viền đôi thanh lịch, lời thề hẹn ước viết tay cùng 2 ảnh ngang vintage phía dưới',
+    slotCount: 3,
+    aspectRatio: '80:180',
+    category: 'standee',
+    previewThumbnail: 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-17.jpg'
   }
 ];
 

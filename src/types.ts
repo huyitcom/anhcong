@@ -38,7 +38,7 @@ export interface TextConfig {
   textUppercase: boolean;
 }
 
-export type AspectRatioType = '2:3' | '3:2' | '3:4' | '1:1' | '9:16' | '22:30';
+export type AspectRatioType = '2:3' | '3:2' | '3:4' | '1:1' | '9:16' | '22:30' | '80:180';
 
 export interface PosterSettings {
   bgColor: string; // hex or preset name
@@ -66,7 +66,12 @@ export type TemplateId =
   | 'grid-8-center-text'
   | 'hero-trio-3'
   | 'magazine-8'
-  | 'asymmetric-7';
+  | 'asymmetric-7'
+  | 'standee-sweet-8'
+  | 'standee-editorial-4'
+  | 'standee-arch-3';
+
+export type TemplateCategory = 'anh-cong' | 'hop-album' | 'standee';
 
 export interface TemplateDefinition {
   id: TemplateId;
@@ -74,5 +79,6 @@ export interface TemplateDefinition {
   description: string;
   slotCount: number;
   aspectRatio: AspectRatioType;
+  category: TemplateCategory;
   previewThumbnail?: string;
 }

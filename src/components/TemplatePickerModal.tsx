@@ -17,13 +17,14 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
   currentTemplateId,
   onSelectTemplate,
 }) => {
-  const [filter, setFilter] = useState<'all' | 'portrait' | 'landscape'>('all');
+  const [filter, setFilter] = useState<'all' | 'anh-cong' | 'hop-album' | 'standee'>('all');
 
   if (!isOpen) return null;
 
   const filteredTemplates = TEMPLATES.filter((tmpl) => {
-    if (filter === 'portrait') return tmpl.aspectRatio === '2:3' || tmpl.aspectRatio === '22:30';
-    if (filter === 'landscape') return tmpl.aspectRatio === '3:2';
+    if (filter === 'anh-cong') return tmpl.category === 'anh-cong';
+    if (filter === 'hop-album') return tmpl.category === 'hop-album';
+    if (filter === 'standee') return tmpl.category === 'standee';
     return true;
   });
 
@@ -66,12 +67,12 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
           </button>
         </div>
 
-        {/* Filter Categories - Hidden on mobile per user request */}
-        <div className="hidden sm:flex px-6 py-3 border-b border-stone-100 bg-white items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl">
+        {/* Filter Categories: Ảnh cổng (1-10) | Hộp đựng album (11-14) | Standee (15-17) */}
+        <div className="flex px-3 sm:px-6 py-2.5 sm:py-3 border-b border-stone-100 bg-white items-center justify-between overflow-x-auto hide-scrollbar gap-2">
+          <div className="flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl shrink-0">
             <button
               onClick={() => setFilter('all')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer whitespace-nowrap ${
                 filter === 'all'
                   ? 'bg-white text-sky-600 shadow-xs'
                   : 'text-stone-600 hover:text-stone-900'
@@ -80,44 +81,49 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
               Tất Cả ({TEMPLATES.length})
             </button>
             <button
-              onClick={() => setFilter('portrait')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${
-                filter === 'portrait'
+              onClick={() => setFilter('anh-cong')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer whitespace-nowrap ${
+                filter === 'anh-cong'
                   ? 'bg-white text-sky-600 shadow-xs'
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              Khổ Đứng ({TEMPLATES.filter((t) => t.aspectRatio === '2:3' || t.aspectRatio === '22:30').length})
+              Ảnh cổng ({TEMPLATES.filter((t) => t.category === 'anh-cong').length})
             </button>
             <button
-              onClick={() => setFilter('landscape')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer ${
-                filter === 'landscape'
+              onClick={() => setFilter('hop-album')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer whitespace-nowrap ${
+                filter === 'hop-album'
                   ? 'bg-white text-sky-600 shadow-xs'
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              Khổ Ngang 90x60cm ({TEMPLATES.filter((t) => t.aspectRatio === '3:2').length})
+              Hộp đựng album ({TEMPLATES.filter((t) => t.category === 'hop-album').length})
+            </button>
+            <button
+              onClick={() => setFilter('standee')}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer whitespace-nowrap ${
+                filter === 'standee'
+                  ? 'bg-white text-sky-600 shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              Standee ({TEMPLATES.filter((t) => t.category === 'standee').length})
             </button>
           </div>
 
-          <span className="text-xs text-stone-400 italic">
+          <span className="hidden md:inline-block text-xs text-stone-400 italic shrink-0">
             * Bấm vào mẫu để áp dụng ngay lên bản thiết kế
           </span>
         </div>
 
         {/* Templates Grid Content */}
         <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 bg-stone-50/50">
-          <div
-            className={
-              filter === 'landscape'
-                ? 'grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5'
-                : 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4'
-            }
-          >
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
             {filteredTemplates.map((tmpl) => {
               const isSelected = currentTemplateId === tmpl.id;
               const isLandscape = tmpl.aspectRatio === '3:2';
+              const isStandee = tmpl.aspectRatio === '80:180';
 
               return (
                 <div
@@ -138,15 +144,27 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
                     </div>
                   )}
 
-                  {/* Thumbnail Container - Truly Horizontal for Landscape (3:2) and Vertical for Portrait (2:3) */}
+                  {/* Thumbnail Container */}
                   <div
                     className={`w-full flex items-center justify-center bg-stone-100/80 rounded-xl overflow-hidden p-2.5 transition-colors group-hover:bg-stone-100 ${
-                      isLandscape ? 'aspect-[3/2]' : tmpl.aspectRatio === '22:30' ? 'aspect-[22/30]' : 'aspect-[2/3]'
+                      isLandscape
+                        ? 'aspect-[3/2]'
+                        : tmpl.aspectRatio === '22:30'
+                        ? 'aspect-[22/30]'
+                        : isStandee
+                        ? 'aspect-[80/180]'
+                        : 'aspect-[2/3]'
                     }`}
                   >
                     <div
                       className={`shadow-sm border border-stone-200/90 rounded-md overflow-hidden transition-transform duration-200 group-hover:scale-[1.02] ${
-                        isLandscape ? 'w-full h-full aspect-[3/2]' : tmpl.aspectRatio === '22:30' ? 'w-full h-full aspect-[22/30]' : 'w-full h-full aspect-[2/3]'
+                        isLandscape
+                          ? 'w-full h-full aspect-[3/2]'
+                          : tmpl.aspectRatio === '22:30'
+                          ? 'w-full h-full aspect-[22/30]'
+                          : isStandee
+                          ? 'w-full h-full aspect-[80/180]'
+                          : 'w-full h-full aspect-[2/3]'
                       }`}
                     >
                       <TemplateThumbnail id={tmpl.id} />
@@ -160,12 +178,18 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
                     </h3>
                     <span
                       className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md shrink-0 ${
-                        isLandscape
-                          ? 'bg-amber-100 text-amber-800'
-                          : tmpl.aspectRatio === '22:30' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
+                        tmpl.category === 'anh-cong'
+                          ? isLandscape ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'
+                          : tmpl.category === 'hop-album'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-rose-100 text-rose-800'
                       }`}
                     >
-                      {isLandscape ? '90x60 Ngang' : tmpl.aspectRatio === '22:30' ? '22x30 Đứng' : '60x90 Đứng'}
+                      {tmpl.category === 'anh-cong'
+                        ? isLandscape ? 'Ảnh cổng • 90x60' : 'Ảnh cổng • 60x90'
+                        : tmpl.category === 'hop-album'
+                        ? 'Hộp album • 22x30'
+                        : 'Standee • 80x180'}
                     </span>
                   </div>
                 </div>

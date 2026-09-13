@@ -150,6 +150,8 @@ export default function App() {
         return { width: 7087, height: 7087 };
       case '9:16': // 60 x 106 cm at 300 DPI
         return { width: 7087, height: 12600 };
+      case '80:180': // 80 x 180 cm standee at 200 DPI (6299 x 14173 px)
+        return { width: 6299, height: 14173 };
       default:
         return { width: 7087, height: 10630 };
     }
@@ -160,7 +162,7 @@ export default function App() {
     if (!posterRef.current) return null;
     try {
       const { width: targetWidth } = getPrintDimensions(posterSettings.aspectRatio);
-      const baseWidth = posterSettings.aspectRatio === '3:2' ? 820 : 560;
+      const baseWidth = posterSettings.aspectRatio === '3:2' ? 820 : posterSettings.aspectRatio === '80:180' ? 520 : 560;
       const elemWidth = posterRef.current.offsetWidth || baseWidth;
       const pixelRatio = targetWidth / elemWidth;
 
@@ -182,9 +184,9 @@ export default function App() {
     } catch (err) {
       console.error('Failed to capture high-res canvas at 300 DPI, attempting safe fallback:', err);
       try {
-        const baseWidth = posterSettings.aspectRatio === '3:2' ? 820 : 560;
+        const baseWidth = posterSettings.aspectRatio === '3:2' ? 820 : posterSettings.aspectRatio === '80:180' ? 520 : 560;
         const elemWidth = posterRef.current.offsetWidth || baseWidth;
-        const fallbackRatio = posterSettings.aspectRatio === '22:30' ? (2598 / elemWidth) : 4;
+        const fallbackRatio = posterSettings.aspectRatio === '22:30' ? (2598 / elemWidth) : posterSettings.aspectRatio === '80:180' ? (6299 / elemWidth) : 4;
         const fontEmbedCSS = await getFontEmbedCSS(posterRef.current);
         const fallbackDataUrl = await toJpeg(posterRef.current, {
           pixelRatio: fallbackRatio,

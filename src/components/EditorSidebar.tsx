@@ -44,6 +44,9 @@ const TEMPLATE_THUMBNAIL_IMAGES: Record<string, string> = {
   'hero-trio-3': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-12.jpg',
   'magazine-8': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-13.jpg',
   'asymmetric-7': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-14.jpg',
+  'standee-sweet-8': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-15.jpg',
+  'standee-editorial-4': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-16.jpg',
+  'standee-arch-3': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-17.jpg',
 };
 
 export const TemplateThumbnail: React.FC<{ id: string; className?: string }> = ({ id, className = '' }) => {
@@ -61,6 +64,77 @@ export const TemplateThumbnail: React.FC<{ id: string; className?: string }> = (
       </div>
     );
   }
+
+  // Visual thumbnail mockups for Standee 80x180 templates
+  if (id === 'standee-sweet-8') {
+    return (
+      <div className={`w-full h-full bg-white flex flex-col p-1 gap-0.5 border border-stone-200 select-none ${className}`}>
+        <div className="text-[5px] text-center font-serif text-stone-700 font-bold tracking-tight">SWEET MOMENTS</div>
+        <div className="w-full h-[28%] bg-stone-200 rounded-xs flex items-center justify-center text-[7px] text-stone-400">1</div>
+        <div className="w-full flex-1 flex flex-col gap-0.5">
+          <div className="w-full h-[33%] flex gap-0.5">
+            <div className="w-[45%] h-full bg-stone-200 rounded-xs"></div>
+            <div className="w-[55%] h-full flex flex-col gap-0.5">
+              <div className="w-full h-1/2 bg-stone-200 rounded-xs"></div>
+              <div className="w-full h-1/2 bg-stone-200 rounded-xs"></div>
+            </div>
+          </div>
+          <div className="w-full h-[33%] flex gap-0.5">
+            <div className="w-[60%] h-full bg-stone-200 rounded-xs"></div>
+            <div className="w-[40%] h-full bg-stone-200 rounded-xs"></div>
+          </div>
+          <div className="w-full h-[34%] flex gap-0.5">
+            <div className="w-1/2 h-full bg-stone-200 rounded-xs"></div>
+            <div className="w-1/2 h-full bg-stone-200 rounded-xs"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (id === 'standee-editorial-4') {
+    return (
+      <div className={`w-full h-full bg-white flex flex-col p-1 gap-0.5 border border-stone-200 select-none ${className}`}>
+        <div className="text-[5px] text-center font-serif text-stone-800 font-bold tracking-widest">SAVE THE DATE</div>
+        <div className="w-full h-[25%] bg-stone-200 rounded-xs"></div>
+        <div className="w-full h-[35%] flex gap-0.5">
+          <div className="w-1/2 h-full flex flex-col justify-between">
+            <div className="text-[4px] text-stone-600 font-serif leading-none pt-0.5">Groom<br/><span className="font-bold">HOÀNG ANH</span></div>
+            <div className="w-full h-[58%] bg-stone-200 rounded-xs"></div>
+          </div>
+          <div className="w-1/2 h-full flex flex-col justify-between">
+            <div className="w-full h-[58%] bg-stone-200 rounded-xs"></div>
+            <div className="text-[4px] text-stone-600 font-serif leading-none pb-0.5">Bride<br/><span className="font-bold">THU HÀ</span></div>
+          </div>
+        </div>
+        <div className="w-full flex-1 bg-stone-200 rounded-xs"></div>
+      </div>
+    );
+  }
+
+  if (id === 'standee-arch-3') {
+    return (
+      <div className={`w-full h-full bg-white flex flex-col p-1 gap-0.5 border border-stone-200 select-none ${className}`}>
+        <div className="flex justify-between items-center px-0.5 text-[4px] text-stone-700">
+          <span className="italic font-serif">save the date</span>
+          <span>30.04.2026</span>
+        </div>
+        <div className="w-full h-[40%] flex items-center justify-center p-0.5">
+          <div className="w-[85%] h-full rounded-t-full border border-stone-300 p-0.5 flex items-center justify-center">
+            <div className="w-full h-full bg-stone-200 rounded-t-full"></div>
+          </div>
+        </div>
+        <div className="text-[3.5px] italic text-center text-stone-500 line-clamp-1 px-0.5 py-0.5">
+          Từ khoảnh khắc nhìn thấy nhau...
+        </div>
+        <div className="w-full flex-1 flex flex-col gap-0.5">
+          <div className="w-full h-1/2 bg-stone-200 rounded-xs"></div>
+          <div className="w-full h-1/2 bg-stone-200 rounded-xs"></div>
+        </div>
+      </div>
+    );
+  }
+
   return <div className="w-full h-full bg-stone-100"></div>;
 };
 
@@ -122,7 +196,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
               onClick={() => onChangeTemplate(tmpl.id)}
               title={`${tmpl.name} (${tmpl.slotCount} ảnh)`}
               className={`flex-shrink-0 rounded-xl border-2 transition overflow-hidden relative group cursor-pointer ${
-                tmpl.aspectRatio === '3:2' ? 'w-28 h-20' : 'w-20 h-28'
+                tmpl.aspectRatio === '3:2' ? 'w-28 h-20' : tmpl.aspectRatio === '80:180' ? 'w-14 h-32' : 'w-20 h-28'
               } ${
                 templateId === tmpl.id
                   ? 'border-sky-500 ring-2 ring-sky-500/20 shadow-xs'
@@ -434,6 +508,7 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                   { id: '22:30', label: '22x30' },
                   { id: '1:1', label: '90x90' },
                   { id: '9:16', label: '60x120' },
+                  { id: '80:180', label: '80x180' },
                 ].map((ratio) => (
                   <button
                     key={ratio.id}

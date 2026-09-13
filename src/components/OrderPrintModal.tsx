@@ -137,6 +137,7 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
     '22:30': '22x30',
     '1:1': '90x90',
     '9:16': '60x120',
+    '80:180': '80x180',
   };
   const currentSize = sizeMap[posterSettings.aspectRatio] || '60x90';
 
