@@ -1,5 +1,6 @@
 import React from 'react';
 import { RotateCcw, Images, ShoppingBag } from 'lucide-react';
+import { UserAuthMenu } from './UserAuthMenu';
 
 interface NavbarProps {
   onOpenOrderModal: () => void;
@@ -46,11 +47,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Right: Action Buttons */}
+      {/* Right: Action Buttons & User Menu */}
       <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
         <button
           onClick={onOpenBatchUpload}
-          className="hidden sm:flex items-center gap-1.5 bg-stone-100 hover:bg-sky-50 hover:text-sky-700 text-stone-800 text-xs font-semibold px-3 py-2 rounded-xl border border-stone-200 hover:border-sky-200 transition"
+          className="hidden md:flex items-center gap-1.5 bg-stone-100 hover:bg-sky-50 hover:text-sky-700 text-stone-800 text-xs font-semibold px-3 py-2 rounded-xl border border-stone-200 hover:border-sky-200 transition"
         >
           <Images className="w-3.5 h-3.5 text-sky-600" />
           <span>Upload Ảnh</span>
@@ -71,7 +72,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <RotateCcw className="w-4 h-4" />
         </button>
+
+        {/* User Account / VIP status */}
+        <div className="pl-1 border-l border-stone-200">
+          <UserAuthMenu />
+        </div>
       </div>
     </header>
   );
 };
+

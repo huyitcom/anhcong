@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   FrameSlot,
   PosterSettings,
@@ -17,8 +17,9 @@ import { EditorSidebar } from './components/EditorSidebar';
 import { PhotoCropModal } from './components/PhotoCropModal';
 import { BatchUploadModal } from './components/BatchUploadModal';
 import { OrderPrintModal } from './components/OrderPrintModal';
-import { toJpeg, getFontEmbedCSS } from 'html-to-image';
+import { toJpeg } from 'html-to-image';
 import { setDpiInJpegDataUrl } from './utils/imageUtils';
+import { getEmbeddedFontCSS, prefetchCommonFonts } from './utils/fontEmbedder';
 
 export default function App() {
   const [templateId, setTemplateId] = useState<TemplateId>('classic-10');
@@ -46,6 +47,11 @@ export default function App() {
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
   const posterRef = useRef<HTMLDivElement>(null);
+
+  // Pre-warm Google Fonts cache for instant, 100% accurate font export
+  useEffect(() => {
+    prefetchCommonFonts();
+  }, []);
 
   // Adjust slot count and auto-sync aspect ratio when template changes
   const handleTemplateChange = (newTemplateId: TemplateId) => {
@@ -166,8 +172,14 @@ export default function App() {
       const elemWidth = posterRef.current.offsetWidth || baseWidth;
       const pixelRatio = targetWidth / elemWidth;
 
-      // Get fonts to embed
-      const fontEmbedCSS = await getFontEmbedCSS(posterRef.current);
+      // Get custom fonts embedded directly as base64 CSS to prevent font substitution fallback
+      const fontEmbedCSS = await getEmbeddedFontCSS(posterRef.current, [
+        textConfig.namesFont,
+        textConfig.taglineFont,
+        textConfig.dateFont,
+        textConfig.connectorFont,
+        textConfig.subtextFont,
+      ]);
 
       // We only pass pixelRatio. We DO NOT pass canvasWidth/canvasHeight because
       // html-to-image calculates canvas.width = canvasWidth * pixelRatio, which would multiply the dimensions twice!
@@ -187,7 +199,13 @@ export default function App() {
         const baseWidth = posterSettings.aspectRatio === '3:2' ? 820 : posterSettings.aspectRatio === '80:180' ? 520 : 560;
         const elemWidth = posterRef.current.offsetWidth || baseWidth;
         const fallbackRatio = posterSettings.aspectRatio === '22:30' ? (2598 / elemWidth) : posterSettings.aspectRatio === '80:180' ? (6299 / elemWidth) : 4;
-        const fontEmbedCSS = await getFontEmbedCSS(posterRef.current);
+        const fontEmbedCSS = await getEmbeddedFontCSS(posterRef.current, [
+          textConfig.namesFont,
+          textConfig.taglineFont,
+          textConfig.dateFont,
+          textConfig.connectorFont,
+          textConfig.subtextFont,
+        ]);
         const fallbackDataUrl = await toJpeg(posterRef.current, {
           pixelRatio: fallbackRatio,
           quality: 0.90,
@@ -243,6 +261,7 @@ export default function App() {
             </p>
           </div>
         </main>
+
 
         {/* Right Editor Controls Sidebar */}
         <EditorSidebar

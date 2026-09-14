@@ -1738,10 +1738,10 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
             <div className="w-full flex items-baseline justify-between px-3 pt-2 pb-1 select-none shrink-0">
               <div
                 style={{
-                  fontFamily: 'Great Vibes, cursive',
+                  fontFamily: textConfig.taglineFont || 'Great Vibes, cursive',
                   color: textConfig.taglineColor || '#1c1917',
                 }}
-                className="text-3xl sm:text-4xl italic lowercase"
+                className="text-3xl sm:text-4xl lowercase"
               >
                 {textConfig.tagline ? textConfig.tagline.toLowerCase() : 'save the date'}
               </div>
@@ -1758,7 +1758,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
             </div>
 
             {/* Arch Photo Hero Frame */}
-            <div className="w-full h-[43%] min-h-0 flex items-center justify-center px-2 py-1">
+            <div className="w-full h-[42%] min-h-0 flex items-center justify-center px-2 py-1">
               <div className="w-[88%] h-full rounded-t-full border border-stone-300/80 p-2 sm:p-2.5 flex items-center justify-center">
                 <div className="w-full h-full rounded-t-full overflow-hidden">
                   {renderSlot(0, 'w-full h-full rounded-t-full')}
@@ -1770,9 +1770,9 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
             <div className="w-full flex flex-col items-center justify-center px-4 py-2 text-center select-none shrink-0">
               <p
                 style={{
-                  fontFamily: 'Dancing Script, cursive',
+                  fontFamily: textConfig.subtextFont || 'Dancing Script, cursive',
                   color: textConfig.subtextColor || '#292524',
-                  lineHeight: 1.6,
+                  lineHeight: 1.5,
                 }}
                 className="text-sm sm:text-base max-w-[94%] mx-auto font-medium"
               >
@@ -1783,10 +1783,10 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
 
             {/* Bottom 2 Stacked Horizontal Photos */}
             <div className="w-full flex-1 min-h-0 flex flex-col" style={{ gap: `${posterSettings.gap}px` }}>
-              <div className="w-full h-1/2 min-h-0">
+              <div className="w-full flex-1 min-h-0">
                 {renderSlot(1, 'w-full h-full')}
               </div>
-              <div className="w-full h-1/2 min-h-0">
+              <div className="w-full flex-1 min-h-0">
                 {renderSlot(2, 'w-full h-full')}
               </div>
             </div>
@@ -1873,7 +1873,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
             <div className="w-full h-[32%] flex flex-col items-center justify-center pt-2 sm:pt-4 select-none shrink-0 text-center">
               <div
                 style={{
-                  fontFamily: textConfig.taglineFont || 'Inter, sans-serif',
+                  fontFamily: textConfig.taglineFont || 'Plus Jakarta Sans, sans-serif',
                   color: textConfig.taglineColor || '#1c1917',
                   letterSpacing: '0.15em',
                   lineHeight: 1.4,
@@ -1887,7 +1887,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
 
               <div
                 style={{
-                  fontFamily: textConfig.dateFont || 'Inter, sans-serif',
+                  fontFamily: textConfig.dateFont || 'Plus Jakarta Sans, sans-serif',
                   color: textConfig.dateColor || '#1c1917',
                   letterSpacing: '0.1em',
                 }}

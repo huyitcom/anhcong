@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   X,
   Check,
@@ -11,11 +11,14 @@ import {
   MessageCircle,
   Heart,
   Send,
-  Mail
+  Mail,
 } from 'lucide-react';
 import { TextConfig, PosterSettings } from '../types';
 import { TEMPLATES } from '../data/constants';
 import confetti from 'canvas-confetti';
+import { useAuth } from '../lib/AuthContext';
+
+
 
 export interface GatePhotoMaterial {
   id: string;
@@ -170,11 +173,70 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
 
-  // Admin Download State
-  const [isAdminMode, setIsAdminMode] = useState<boolean>(false);
-  const [adminPwd, setAdminPwd] = useState<string>('');
-  const [adminError, setAdminError] = useState<boolean>(false);
+  // Auth Context for VIP Check
+  const { currentUser, userProfile, isVip, loginWithGoogle } = useAuth();
   const [isAdminDownloading, setIsAdminDownloading] = useState<boolean>(false);
+
+  // Prefill customer name and email from logged-in user if available
+  useEffect(() => {
+    if (userProfile || currentUser) {
+      if (!customerName && (userProfile?.displayName || currentUser?.displayName)) {
+        setCustomerName(userProfile?.displayName || currentUser?.displayName || '');
+      }
+      if (!customerEmail && (userProfile?.email || currentUser?.email)) {
+        setCustomerEmail(userProfile?.email || currentUser?.email || '');
+      }
+    }
+  }, [currentUser, userProfile]);
+
+  // Direct VIP / Admin Download Action
+  const triggerDownload = async () => {
+    if (!onGetDesignDataUrl) return;
+    setIsAdminDownloading(true);
+    try {
+      const dataUrl = await onGetDesignDataUrl();
+      if (dataUrl) {
+        const groom = (textConfig.groomName || 'Groom').replace(/\s+/g, '_');
+        const bride = (textConfig.brideName || 'Bride').replace(/\s+/g, '_');
+        const sizeCode = posterSettings.aspectRatio.replace(':', 'x');
+        const fileName = `${isAlbumBox ? 'Hop_Album' : isStandee ? 'Standee' : 'Anh_Cong'}_${groom}_${bride}_${sizeCode}_300DPI_${Date.now()}.jpg`;
+        const link = document.createElement('a');
+        link.download = fileName;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        alert('Không thể tạo file ảnh!');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi xuất file!');
+    } finally {
+      setIsAdminDownloading(false);
+    }
+  };
+
+  const handleDownloadFile = async () => {
+    if (isVip) {
+      await triggerDownload();
+      return;
+    }
+
+    if (!currentUser) {
+      await loginWithGoogle();
+      return;
+    }
+
+    // Logged in but not VIP
+    const pwd = window.prompt('Tài khoản của bạn chưa có quyền VIP tải file.\nNếu bạn là kỹ thuật viên/quản trị viên, vui lòng nhập mật khẩu:');
+    if (pwd === '341341') {
+      await triggerDownload();
+    } else if (pwd !== null && pwd.trim() !== '') {
+      alert('Mật khẩu không chính xác hoặc tài khoản chưa kích hoạt quyền VIP!');
+    }
+  };
+
 
   if (!isOpen) return null;
 
@@ -495,73 +557,19 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
                   </div>
 
                   {/* Actions Bar */}
-                  <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                    {isAdminMode ? (
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="password"
-                          autoFocus
-                          placeholder="Mật khẩu Admin..."
-                          value={adminPwd}
-                          onChange={(e) => {
-                            setAdminPwd(e.target.value);
-                            setAdminError(false);
-                          }}
-                          onKeyDown={async (e) => {
-                            if (e.key === 'Enter') {
-                              if (adminPwd === '341341') {
-                                if (onGetDesignDataUrl) {
-                                  setIsAdminDownloading(true);
-                                  try {
-                                    const dataUrl = await onGetDesignDataUrl();
-                                    if (dataUrl) {
-                                      const groom = (textConfig.groomName || 'Groom').replace(/\s+/g, '_');
-                                      const bride = (textConfig.brideName || 'Bride').replace(/\s+/g, '_');
-                                      const sizeCode = posterSettings.aspectRatio.replace(':', 'x');
-                                      const fileName = `Anh_Cong_${groom}_${bride}_${sizeCode}_300DPI_${Date.now()}.jpg`;
-                                      const link = document.createElement('a');
-                                      link.download = fileName;
-                                      link.href = dataUrl;
-                                      link.click();
-                                      setIsAdminMode(false);
-                                      setAdminPwd('');
-                                    } else {
-                                      alert('Không thể tạo file ảnh!');
-                                    }
-                                  } catch (err) {
-                                    console.error(err);
-                                    alert('Lỗi xuất file!');
-                                  } finally {
-                                    setIsAdminDownloading(false);
-                                  }
-                                }
-                              } else {
-                                setAdminError(true);
-                              }
-                            }
-                          }}
-                          className="w-32 px-2 py-1.5 text-xs border border-stone-300 rounded focus:ring-1 focus:ring-sky-500 focus:outline-none"
-                        />
-                        {adminError && <span className="text-xs text-red-500 font-medium">Sai mật khẩu!</span>}
-                        {isAdminDownloading && <span className="text-xs text-stone-500">Đang xuất file...</span>}
-                        {!isAdminDownloading && (
-                          <button 
-                            type="button" 
-                            onClick={() => { setIsAdminMode(false); setAdminPwd(''); setAdminError(false); }} 
-                            className="text-xs text-stone-500 underline ml-1"
-                          >
-                            Đóng
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div 
-                        className="text-xs text-stone-500 cursor-pointer hover:text-stone-700 transition font-medium flex items-center gap-1"
-                        onClick={() => setIsAdminMode(true)}
+                  <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-stone-100">
+                    {/* Left: Tải file (VIP / Auth) */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleDownloadFile}
+                        disabled={isAdminDownloading}
+                        className="text-xs text-stone-500 hover:text-stone-800 transition font-medium flex items-center gap-1 underline decoration-stone-300 hover:decoration-stone-600 disabled:opacity-50"
                       >
-                        <span>🔒</span> <span className="underline">{isAlbumBox ? "Tải file hộp album" : currentTemplate?.category === 'standee' ? "Tải file standee" : "Tải file ảnh cổng"}</span>
-                      </div>
-                    )}
+                        <span>{isAdminDownloading ? 'Đang xuất file...' : 'Tải file'}</span>
+                      </button>
+                    </div>
+
 
                     <div className="flex items-center gap-2 shrink-0">
                       <button
