@@ -5,7 +5,7 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, googleProvider, db } from './firebase';
 
 export interface UserProfile {
@@ -24,7 +24,7 @@ interface AuthContextType {
   isVip: boolean;
   isAdmin: boolean;
   hasDownloadPrivilege: boolean;
-  loginWithGoogle: () => Promise<boolean>;
+  loginWithGoogle: () => Promise<UserProfile | null>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -37,7 +37,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
 
   // Function to fetch Firestore user doc
-  const fetchUserProfile = async (user: FirebaseUser) => {
+  const fetchUserProfile = async (user: FirebaseUser): Promise<UserProfile> => {
+    let profile: UserProfile;
     try {
       // Fetch user profile from the shared `users` collection
       const userDocRef = doc(db, 'users', user.uid);
@@ -45,35 +46,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (userSnap.exists()) {
         const data = userSnap.data() as Partial<UserProfile>;
-        setUserProfile({
+        profile = {
           uid: user.uid,
           email: user.email || data.email || '',
           displayName: user.displayName || data.displayName || 'User',
           photoURL: user.photoURL || data.photoURL,
           role: data.role || 'user',
           createdAt: data.createdAt,
-        });
+        };
+
+        // Sync photo or displayName if missing in Firestore doc
+        if ((!data.photoURL && user.photoURL) || (!data.displayName && user.displayName)) {
+          setDoc(
+            userDocRef,
+            {
+              displayName: user.displayName || data.displayName || 'User',
+              photoURL: user.photoURL || data.photoURL || '',
+            },
+            { merge: true }
+          ).catch((e) => console.warn('[AuthProvider] Sync profile warning:', e));
+        }
       } else {
-        // In case doc doesn't exist yet, fallback to auth user info with default role
-        setUserProfile({
+        // Document does not exist yet -> Create new user doc in Firestore
+        const newUserData = {
           uid: user.uid,
           email: user.email || '',
-          displayName: user.displayName || 'User',
+          displayName: user.displayName || user.email?.split('@')[0] || 'User',
+          photoURL: user.photoURL || '',
+          role: 'user',
+          createdAt: serverTimestamp(),
+        };
+
+        try {
+          await setDoc(userDocRef, newUserData, { merge: true });
+        } catch (saveErr) {
+          console.error('[AuthProvider] Không thể tạo user mới trên Firestore:', saveErr);
+        }
+
+        profile = {
+          uid: user.uid,
+          email: user.email || '',
+          displayName: user.displayName || user.email?.split('@')[0] || 'User',
           photoURL: user.photoURL || undefined,
           role: 'user',
-        });
+          createdAt: new Date().toISOString(),
+        };
       }
     } catch (error) {
       console.warn('[AuthProvider] Could not fetch user doc from Firestore:', error);
       // Fallback
-      setUserProfile({
+      profile = {
         uid: user.uid,
         email: user.email || '',
         displayName: user.displayName || 'User',
         photoURL: user.photoURL || undefined,
         role: 'user',
-      });
+      };
     }
+    setUserProfile(profile);
+    return profile;
   };
 
   useEffect(() => {
@@ -90,30 +121,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
-  const loginWithGoogle = async (): Promise<boolean> => {
+  const loginWithGoogle = async (): Promise<UserProfile | null> => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       if (result.user) {
-        await fetchUserProfile(result.user);
-        return true;
+        const profile = await fetchUserProfile(result.user);
+        return profile;
       }
-      return false;
+      return null;
     } catch (error: any) {
       const errorCode = error?.code || '';
       // If user voluntarily closed or cancelled the popup, do not treat as an application error
       if (errorCode === 'auth/popup-closed-by-user' || errorCode === 'auth/cancelled-popup-request') {
         // User deliberately dismissed the login window
-        return false;
+        return null;
       }
 
       if (errorCode === 'auth/popup-blocked') {
         alert('Trình duyệt đang chặn cửa sổ đăng nhập. Vui lòng cho phép bật popup trên trình duyệt của bạn.');
-        return false;
+        return null;
       }
 
       console.warn('[AuthProvider] Đăng nhập Google không hoàn tất:', error?.message || error);
       alert('Đăng nhập không thành công: ' + (error?.message || 'Lỗi xác thực'));
-      return false;
+      return null;
     }
   };
 

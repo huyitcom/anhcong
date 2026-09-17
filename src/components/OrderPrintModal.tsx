@@ -12,6 +12,11 @@ import {
   Heart,
   Send,
   Mail,
+  Gift,
+  Lock,
+  Key,
+  Crown,
+  LogIn,
 } from 'lucide-react';
 import { TextConfig, PosterSettings } from '../types';
 import { TEMPLATES } from '../data/constants';
@@ -176,6 +181,9 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
   // Auth Context for VIP Check
   const { currentUser, userProfile, isVip, loginWithGoogle } = useAuth();
   const [isAdminDownloading, setIsAdminDownloading] = useState<boolean>(false);
+  
+  const [downloadState, setDownloadState] = useState<'idle' | 'login_required' | 'customer_check' | 'existing_customer' | 'new_customer' | 'login' | 'password'>('idle');
+  const [adminPwd, setAdminPwd] = useState<string>('');
 
   // Prefill customer name and email from logged-in user if available
   useEffect(() => {
@@ -218,23 +226,17 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
   };
 
   const handleDownloadFile = async () => {
+    if (!currentUser) {
+      setDownloadState('login_required');
+      return;
+    }
+
     if (isVip) {
       await triggerDownload();
       return;
     }
 
-    if (!currentUser) {
-      await loginWithGoogle();
-      return;
-    }
-
-    // Logged in but not VIP
-    const pwd = window.prompt('Tài khoản của bạn chưa có quyền VIP tải file.\nNếu bạn là kỹ thuật viên/quản trị viên, vui lòng nhập mật khẩu:');
-    if (pwd === '341341') {
-      await triggerDownload();
-    } else if (pwd !== null && pwd.trim() !== '') {
-      alert('Mật khẩu không chính xác hoặc tài khoản chưa kích hoạt quyền VIP!');
-    }
+    setDownloadState('customer_check');
   };
 
 
@@ -340,7 +342,7 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto animate-fade-in">
-      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-6xl w-full shadow-2xl overflow-hidden border border-stone-200 my-auto max-h-[92vh] flex flex-col">
+      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-6xl w-full shadow-2xl overflow-hidden border border-stone-200 my-auto max-h-[92vh] flex flex-col relative">
         {/* Top Header */}
         <div className="px-4 py-3 sm:px-5 sm:py-4 bg-gradient-to-r from-sky-600 via-sky-500 to-cyan-500 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5 sm:gap-3">
@@ -664,6 +666,261 @@ export const OrderPrintModal: React.FC<OrderPrintModalProps> = ({
 
               <div className="text-[11px] text-stone-400 pt-3">
                 Hotline hỗ trợ nhanh: <a href="tel:0938023079" className="text-sky-600 font-semibold underline">0938.023.079</a> | Website: <a href="https://www.photobookvietnam.net" target="_blank" rel="noreferrer" className="text-sky-600 underline">photobookvietnam.net</a>
+              </div>
+            </div>
+          )}
+          
+          {/* Trial / VIP Overlays */}
+          {downloadState !== 'idle' && (
+            <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-white border border-stone-200 shadow-xl rounded-2xl p-6 max-w-sm w-full animate-fade-in">
+                {downloadState === 'login_required' && (
+                  <div className="text-center space-y-4">
+                    <div className="w-12 h-12 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center mx-auto">
+                      <LogIn className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-stone-800">Yêu cầu đăng nhập</h3>
+                    <p className="text-sm text-stone-600">
+                      Vui lòng đăng nhập tài khoản để tiếp tục tải file chất lượng cao.
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                      <button 
+                        onClick={() => setDownloadState('idle')}
+                        className="flex-1 py-2 text-stone-600 font-medium bg-stone-100 hover:bg-stone-200 rounded-xl transition"
+                      >
+                        Đóng
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          const profile = await loginWithGoogle();
+                          if (profile) {
+                            const role = profile.role?.toLowerCase();
+                            const userIsVip = role === 'vip' || role === 'admin';
+                            if (userIsVip) {
+                              setDownloadState('idle');
+                              await triggerDownload();
+                            } else {
+                              setDownloadState('customer_check');
+                            }
+                          }
+                        }}
+                        className="flex-1 py-2 text-white font-medium bg-sky-500 hover:bg-sky-600 rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs"
+                      >
+                        <LogIn className="w-4 h-4" />
+                        <span>Đăng nhập</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {downloadState === 'customer_check' && (
+                  <div className="text-center space-y-4">
+                    <div className="w-12 h-12 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center mx-auto">
+                      <Lock className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-stone-800">Khách hàng Photobook</h3>
+                    <p className="text-sm text-stone-600">
+                      Chức năng tải file chỉ áp dụng cho khách hàng của Photobook Vietnam.
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                      <button 
+                        onClick={() => setDownloadState('existing_customer')}
+                        className="flex-1 py-2 text-white font-medium bg-sky-500 hover:bg-sky-600 rounded-xl transition"
+                      >
+                        Đã là khách hàng
+                      </button>
+                      <button 
+                        onClick={() => setDownloadState('new_customer')}
+                        className="flex-1 py-2 text-stone-600 font-medium bg-stone-100 hover:bg-stone-200 rounded-xl transition border border-stone-200"
+                      >
+                        Chưa là khách hàng
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {downloadState === 'existing_customer' && (
+                  <div className="text-center space-y-4">
+                    <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto">
+                      <Crown className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-stone-800">Nâng cấp VIP</h3>
+                    <p className="text-sm text-stone-600">
+                      Nếu đang là khách hàng của Photobook Vietnam, hãy liên hệ chúng tôi để được nâng lên VIP và tải file không giới hạn (hotline 0938023079)
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                      <button 
+                        onClick={() => setDownloadState('idle')}
+                        className="flex-1 py-2 text-stone-600 font-medium bg-stone-100 hover:bg-stone-200 rounded-xl transition"
+                      >
+                        Đóng
+                      </button>
+                      <a 
+                        href="tel:0938023079"
+                        onClick={() => setDownloadState('idle')}
+                        className="flex-1 py-2 flex items-center justify-center text-white font-medium bg-amber-500 hover:bg-amber-600 rounded-xl transition"
+                      >
+                        Liên hệ ngay
+                      </a>
+                    </div>
+                    {!currentUser && (
+                      <button 
+                        onClick={async () => {
+                          const profile = await loginWithGoogle();
+                          if (profile) {
+                            const role = profile.role?.toLowerCase();
+                            const userIsVip = role === 'vip' || role === 'admin';
+                            if (userIsVip) {
+                              setDownloadState('idle');
+                              await triggerDownload();
+                            }
+                          }
+                        }}
+                        className="w-full text-xs text-sky-600 hover:text-sky-700 underline font-medium pt-1"
+                      >
+                        Hoặc đăng nhập nếu bạn đã là VIP
+                      </button>
+                    )}
+                    {currentUser && !isVip && (
+                      <button 
+                        onClick={() => setDownloadState('password')}
+                        className="w-full text-xs text-stone-500 hover:text-stone-700 underline font-medium pt-1"
+                      >
+                        Nhập mật khẩu kỹ thuật viên
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {downloadState === 'new_customer' && (
+                  <div className="text-center space-y-4">
+                    <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                      <Gift className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-stone-800">Tặng 1 lần tải miễn phí</h3>
+                    <p className="text-sm text-stone-600">
+                      Nếu chưa đặt in tại Photobook Vietnam, hãy đặt đơn hàng đầu tiên để được trở thành khách hàng VIP và tải file không giới hạn hoặc bạn sẽ được tặng 1 lần tải miễn phí này.
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                      <button 
+                        onClick={() => setDownloadState('idle')}
+                        className="flex-1 py-2 text-stone-600 font-medium bg-stone-100 hover:bg-stone-200 rounded-xl transition"
+                      >
+                        Đóng
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          const hasUsedTrial = localStorage.getItem('hasUsedTrialDownload') === 'true';
+                          if (hasUsedTrial) {
+                            if (!currentUser) {
+                              setDownloadState('login');
+                            } else {
+                              setDownloadState('password');
+                            }
+                          } else {
+                            localStorage.setItem('hasUsedTrialDownload', 'true');
+                            setDownloadState('idle');
+                            triggerDownload();
+                          }
+                        }}
+                        className="flex-1 py-2 text-white font-medium bg-emerald-500 hover:bg-emerald-600 rounded-xl transition"
+                      >
+                        Tải miễn phí
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {downloadState === 'login' && (
+                  <div className="text-center space-y-4">
+                    <div className="w-12 h-12 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center mx-auto">
+                      <Lock className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-stone-800">Hết lượt tải dùng thử</h3>
+                    <p className="text-sm text-stone-600">
+                      Bạn đã sử dụng hết lượt tải dùng thử miễn phí. Vui lòng đăng nhập bằng tài khoản VIP để tải không giới hạn.
+                    </p>
+                    <div className="flex gap-3 pt-2">
+                      <button 
+                        onClick={() => setDownloadState('idle')}
+                        className="flex-1 py-2 text-stone-600 font-medium bg-stone-100 hover:bg-stone-200 rounded-xl transition"
+                      >
+                        Đóng
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          const profile = await loginWithGoogle();
+                          if (profile) {
+                            const role = profile.role?.toLowerCase();
+                            const userIsVip = role === 'vip' || role === 'admin';
+                            if (userIsVip) {
+                              setDownloadState('idle');
+                              await triggerDownload();
+                            } else {
+                              setDownloadState('existing_customer');
+                            }
+                          }
+                        }}
+                        className="flex-1 py-2 text-white font-medium bg-sky-500 hover:bg-sky-600 rounded-xl transition"
+                      >
+                        Đăng nhập VIP
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {downloadState === 'password' && (
+                  <div className="text-center space-y-4">
+                    <div className="w-12 h-12 bg-stone-100 text-stone-600 rounded-full flex items-center justify-center mx-auto">
+                      <Key className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-bold text-stone-800">Nhập mật khẩu Admin</h3>
+                    <p className="text-sm text-stone-600">
+                      Tài khoản hiện tại chưa có quyền VIP. Nếu bạn là kỹ thuật viên, vui lòng nhập mật khẩu:
+                    </p>
+                    <input
+                      type="password"
+                      autoFocus
+                      placeholder="Mật khẩu..."
+                      value={adminPwd}
+                      onChange={(e) => setAdminPwd(e.target.value)}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          if (adminPwd === '341341') {
+                            setDownloadState('idle');
+                            setAdminPwd('');
+                            triggerDownload();
+                          } else {
+                            alert('Mật khẩu không chính xác!');
+                          }
+                        }
+                      }}
+                    />
+                    <div className="flex gap-3 pt-2">
+                      <button 
+                        onClick={() => { setDownloadState('idle'); setAdminPwd(''); }}
+                        className="flex-1 py-2 text-stone-600 font-medium bg-stone-100 hover:bg-stone-200 rounded-xl transition"
+                      >
+                        Hủy
+                      </button>
+                      <button 
+                        onClick={() => {
+                          if (adminPwd === '341341') {
+                            setDownloadState('idle');
+                            setAdminPwd('');
+                            triggerDownload();
+                          } else {
+                            alert('Mật khẩu không chính xác!');
+                          }
+                        }}
+                        className="flex-1 py-2 text-white font-medium bg-stone-800 hover:bg-stone-900 rounded-xl transition"
+                      >
+                        Xác nhận
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
