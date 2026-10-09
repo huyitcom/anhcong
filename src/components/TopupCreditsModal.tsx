@@ -120,6 +120,7 @@ export const TopupCreditsModal: React.FC<TopupCreditsModalProps> = ({
           userEmail: currentUser.email || '',
           packageName: pkg.name,
           creditsAmount: pkg.credits,
+          amount: pkg.priceVnd,
           amountVnd: pkg.priceVnd,
         }),
       });
@@ -129,7 +130,11 @@ export const TopupCreditsModal: React.FC<TopupCreditsModalProps> = ({
         throw new Error(data.error || 'Không thể tạo mã thanh toán PayOS');
       }
 
-      setPayosData(data);
+      setPayosData({
+        ...data,
+        credits: data.credits || pkg.credits,
+        packageName: data.packageName || pkg.name,
+      });
     } catch (err: any) {
       console.error('[TopupCreditsModal] PayOS error:', err);
       setPayosError(err.message || 'Lỗi kết nối cổng thanh toán PayOS');

@@ -475,41 +475,51 @@ function createExpressApp() {
     try {
       const {
         amount,
+        amountVnd,
         packageName,
         creditsAmount,
         userId,
         userEmail,
         returnUrl,
         cancelUrl
-      } = req.body;
-      if (!amount || !creditsAmount || !userId) {
+      } = req.body || {};
+      const finalAmount = Math.round(Number(amount || amountVnd));
+      const finalCredits = Number(creditsAmount) || 10;
+      if (!finalAmount || !userId) {
         return res.status(400).json({
           success: false,
-          error: "Thi\u1EBFu th\xF4ng tin thanh to\xE1n (amount, creditsAmount, userId)."
+          error: "Thi\u1EBFu th\xF4ng tin thanh to\xE1n (amount/amountVnd, userId)."
         });
       }
       const orderCode = Number(String(Date.now()).slice(-6) + Math.floor(Math.random() * 100));
-      const description = `PBVN ${creditsAmount}luot`.slice(0, 25);
+      const description = `PBVN ${finalCredits}luot`.slice(0, 25);
       const protocol = req.headers["x-forwarded-proto"] || req.protocol;
       const host = req.headers["x-forwarded-host"] || req.get("host");
       const fallbackReturn = `${protocol}://${host}/?payment_status=success&orderCode=${orderCode}`;
       const fallbackCancel = `${protocol}://${host}/?payment_status=cancelled&orderCode=${orderCode}`;
       const paymentData = {
         orderCode,
-        amount: Math.round(Number(amount)),
+        amount: finalAmount,
         description,
         returnUrl: returnUrl || fallbackReturn,
         cancelUrl: cancelUrl || fallbackCancel
       };
       console.log(`[PayOS] Creating payment link for order ${orderCode}:`, paymentData);
-      const paymentLinkResponse = await payos.createPaymentLink(paymentData);
+      let paymentLinkResponse;
+      if (payos.paymentRequests && typeof payos.paymentRequests.create === "function") {
+        paymentLinkResponse = await payos.paymentRequests.create(paymentData);
+      } else if (typeof payos.createPaymentLink === "function") {
+        paymentLinkResponse = await payos.createPaymentLink(paymentData);
+      } else {
+        throw new Error("PayOS SDK method not available");
+      }
       const orderRecord = {
         orderCode,
         userId,
         userEmail: userEmail || "",
-        packageName: packageName || `${creditsAmount} l\u01B0\u1EE3t AI`,
-        creditsAmount: Number(creditsAmount),
-        amountVnd: Number(amount),
+        packageName: packageName || `${finalCredits} l\u01B0\u1EE3t AI`,
+        creditsAmount: finalCredits,
+        amountVnd: finalAmount,
         status: "PENDING",
         createdAt: Date.now(),
         checkoutUrl: paymentLinkResponse.checkoutUrl,
@@ -529,7 +539,9 @@ function createExpressApp() {
         accountName: paymentLinkResponse.accountName,
         bin: paymentLinkResponse.bin,
         amount: paymentLinkResponse.amount,
-        description
+        description: paymentLinkResponse.description || description,
+        credits: finalCredits,
+        packageName: packageName || `${finalCredits} l\u01B0\u1EE3t AI`
       });
     } catch (err) {
       console.error("[PayOS Create Payment Error]", err);
@@ -547,7 +559,14 @@ function createExpressApp() {
       }
       const cached = payosOrdersCache.get(orderCode);
       try {
-        const paymentInfo = await payos.getPaymentLinkInformation(orderCode);
+        let paymentInfo;
+        if (payos.paymentRequests && typeof payos.paymentRequests.get === "function") {
+          paymentInfo = await payos.paymentRequests.get(orderCode);
+        } else if (typeof payos.getPaymentLinkInformation === "function") {
+          paymentInfo = await payos.getPaymentLinkInformation(orderCode);
+        } else {
+          throw new Error("PayOS SDK get info method not available");
+        }
         console.log(`[PayOS Check Status] Order ${orderCode} status: ${paymentInfo.status}`);
         let normalizedStatus = "PENDING";
         if (paymentInfo.status === "PAID") {
@@ -598,10 +617,17 @@ function createExpressApp() {
     try {
       const webhookBody = req.body;
       console.log("[PayOS Webhook Received]", JSON.stringify(webhookBody));
-      const webhookData = payos.verifyPaymentWebhookData(webhookBody);
+      let webhookData;
+      if (payos.webhooks && typeof payos.webhooks.verify === "function") {
+        webhookData = payos.webhooks.verify(webhookBody);
+      } else if (typeof payos.verifyPaymentWebhookData === "function") {
+        webhookData = payos.verifyPaymentWebhookData(webhookBody);
+      } else {
+        webhookData = webhookBody?.data || webhookBody;
+      }
       const data = webhookData || webhookBody?.data || webhookBody;
       const orderCode = Number(data?.orderCode);
-      const isSuccess = data.code === "00" || webhookData.code === "00" || data.status === "PAID" || webhookData.status === "PAID" || webhookData.desc === "success" || data.desc === "success";
+      const isSuccess = data.code === "00" || webhookData?.code === "00" || data.status === "PAID" || webhookData?.status === "PAID" || webhookData?.desc === "success" || data.desc === "success";
       if (orderCode && isSuccess) {
         const order = payosOrdersCache.get(orderCode);
         if (order) {
@@ -621,9 +647,12 @@ function createExpressApp() {
     try {
       const {
         image,
+        prompt,
         themeTitle,
         themePrompt,
         customPrompt,
+        templateName,
+        preserveFraming,
         aspectRatio,
         imageSize = "1K"
       } = req.body || {};
@@ -668,8 +697,8 @@ function createExpressApp() {
         validImageSize = imageSize;
       }
       console.log(`[AI Background Replacement] Starting generation with size: ${validImageSize}, aspect: ${validAspectRatio} (detected: ${detectedRatio})`);
-      const chosenTheme = themeTitle || "Phong C\xE1ch \u0110\xE1m C\u01B0\u1EDBi Sang Tr\u1ECDng";
-      const promptDetails = customPrompt || themePrompt || "A luxurious, elegant high-end wedding venue with soft cinematic warm lighting, romantic floral decorations, bokeh background, maintaining photographic realism.";
+      const chosenTheme = templateName || themeTitle || "Phong C\xE1ch \u0110\xE1m C\u01B0\u1EDBi Sang Tr\u1ECDng";
+      const promptDetails = prompt || customPrompt || themePrompt || "A luxurious, elegant high-end wedding venue with soft cinematic warm lighting, romantic floral decorations, bokeh background, maintaining photographic realism.";
       const apiKey = (req.headers["x-gemini-api-key"] || req.body?.apiKey || process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
       if (!apiKey) {
         return res.status(500).json({
