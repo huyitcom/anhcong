@@ -377,7 +377,7 @@ export function createExpressApp() {
   const apiRouter = express.Router();
 
   // API Health Check (used by Vercel deployment check & diagnostic)
-  apiRouter.get('/health', (req, res) => {
+  apiRouter.get(['/health', '/healthz'], (req, res) => {
     const geminiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
     res.json({
       status: 'ok',
@@ -392,7 +392,7 @@ export function createExpressApp() {
   });
 
   // API: Submit order & send actual email via Gmail SMTP
-  apiRouter.post('/order/submit', async (req, res) => {
+  apiRouter.post(['/order/submit', '/submit'], async (req, res) => {
     const orderData: OrderPayload = req.body;
     console.log('=== [NHẬN ĐƠN ĐẶT IN MỚI 300 DPI] === Dâu rể:', orderData.groomName, orderData.brideName, 'SĐT:', orderData.customerPhone);
 
@@ -425,7 +425,7 @@ export function createExpressApp() {
   // ==========================================
 
   // API: Create PayOS payment request
-  apiRouter.post('/payos/create-payment', async (req, res) => {
+  apiRouter.post(['/payos/create-payment', '/create-payment'], async (req, res) => {
     try {
       const { userId, userEmail, packageName, creditsAmount, amountVnd } = req.body;
       if (!creditsAmount || !amountVnd) {
@@ -497,7 +497,7 @@ export function createExpressApp() {
   });
 
   // API: Check payment status in real-time
-  apiRouter.get('/payos/check-status/:orderCode', async (req, res) => {
+  apiRouter.get(['/payos/check-status/:orderCode', '/check-status/:orderCode'], async (req, res) => {
     try {
       const orderCode = Number(req.params.orderCode);
       if (!orderCode) {
@@ -548,7 +548,7 @@ export function createExpressApp() {
   });
 
   // API: Webhook callback from PayOS
-  apiRouter.post('/payos/webhook', async (req, res) => {
+  apiRouter.post(['/payos/webhook', '/webhook'], async (req, res) => {
     try {
       const webhookData = req.body;
       console.log('[PayOS Webhook Received]:', JSON.stringify(webhookData));
@@ -641,7 +641,7 @@ function detectImageAspectRatioFromBuffer(buffer: Buffer): '1:1' | '3:4' | '4:3'
 }
 
   // API: AI Background Replacement using Gemini Image Generation
-  apiRouter.post('/ai/replace-background', async (req, res) => {
+  apiRouter.post(['/ai/replace-background', '/replace-background'], async (req, res) => {
     try {
       const {
         image,
@@ -832,7 +832,7 @@ ${prompt}
   });
 
   // API: AI Exposure & Lighting Restoration (Cứu Sáng)
-  apiRouter.post('/ai/restore-lighting', async (req, res) => {
+  apiRouter.post(['/ai/restore-lighting', '/restore-lighting'], async (req, res) => {
     try {
       const {
         image,

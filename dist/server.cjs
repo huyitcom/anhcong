@@ -5,6 +5,10 @@ var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
 var __getProtoOf = Object.getPrototypeOf;
 var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
 var __copyProps = (to, from, except, desc) => {
   if (from && typeof from === "object" || typeof from === "function") {
     for (let key of __getOwnPropNames(from))
@@ -21,8 +25,16 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // server.ts
+var server_exports = {};
+__export(server_exports, {
+  app: () => app,
+  createExpressApp: () => createExpressApp,
+  default: () => server_default
+});
+module.exports = __toCommonJS(server_exports);
 var import_dotenv = __toESM(require("dotenv"), 1);
 var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
@@ -425,9 +437,13 @@ var payos = new import_node.PayOS({
   checksumKey: PAYOS_CHECKSUM_KEY
 });
 var payosOrdersCache = /* @__PURE__ */ new Map();
-var UPLOADS_DIR = import_path.default.join(process.cwd(), "uploads");
-if (!import_fs.default.existsSync(UPLOADS_DIR)) {
-  import_fs.default.mkdirSync(UPLOADS_DIR, { recursive: true });
+var UPLOADS_DIR = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME ? import_path.default.join("/tmp", "uploads") : import_path.default.join(process.cwd(), "uploads");
+try {
+  if (!import_fs.default.existsSync(UPLOADS_DIR)) {
+    import_fs.default.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+} catch (e) {
+  console.warn("[Storage] Could not create uploads directory:", e);
 }
 var SMTP_CONFIG = {
   host: process.env.SMTP_HOST || "smtp.gmail.com",
@@ -663,13 +679,12 @@ async function sendOrderEmail(order, baseUrl) {
     return { success: false, targetEmail: targetEmailStr, error: err.message };
   }
 }
-async function startServer() {
-  const app = (0, import_express.default)();
-  const PORT = 3e3;
-  app.use(import_express.default.json({ limit: "100mb" }));
-  app.use(import_express.default.urlencoded({ limit: "100mb", extended: true }));
-  app.use("/uploads", import_express.default.static(UPLOADS_DIR));
-  app.get("/download/:filename", (req, res) => {
+function createExpressApp() {
+  const app2 = (0, import_express.default)();
+  app2.use(import_express.default.json({ limit: "100mb" }));
+  app2.use(import_express.default.urlencoded({ limit: "100mb", extended: true }));
+  app2.use("/uploads", import_express.default.static(UPLOADS_DIR));
+  app2.get("/download/:filename", (req, res) => {
     const filename = req.params.filename;
     const filePath = import_path.default.join(UPLOADS_DIR, filename);
     if (import_fs.default.existsSync(filePath)) {
@@ -678,15 +693,21 @@ async function startServer() {
       res.status(404).send("File kh\xF4ng t\u1ED3n t\u1EA1i ho\u1EB7c \u0111\xE3 h\u1EBFt h\u1EA1n l\u01B0u tr\u1EEF.");
     }
   });
-  app.get("/api/health", (req, res) => {
+  const apiRouter = import_express.default.Router();
+  apiRouter.get(["/health", "/healthz"], (req, res) => {
+    const geminiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
     res.json({
       status: "ok",
+      geminiConfigured: Boolean(geminiKey),
+      geminiKeyLength: geminiKey ? geminiKey.length : 0,
       smtpUser: SMTP_CONFIG.user,
       targetEmails: TARGET_EMAILS,
-      uploadsDir: UPLOADS_DIR
+      uploadsDir: UPLOADS_DIR,
+      isServerless: Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME),
+      timestamp: (/* @__PURE__ */ new Date()).toISOString()
     });
   });
-  app.post("/api/order/submit", async (req, res) => {
+  apiRouter.post(["/order/submit", "/submit"], async (req, res) => {
     const orderData = req.body;
     console.log("=== [NH\u1EACN \u0110\u01A0N \u0110\u1EB6T IN M\u1EDAI 300 DPI] === D\xE2u r\u1EC3:", orderData.groomName, orderData.brideName, "S\u0110T:", orderData.customerPhone);
     const protocol = req.headers["x-forwarded-proto"] || req.protocol;
@@ -708,7 +729,7 @@ async function startServer() {
       }
     });
   });
-  app.post("/api/payos/create-payment", async (req, res) => {
+  apiRouter.post(["/payos/create-payment", "/create-payment"], async (req, res) => {
     try {
       const { userId, userEmail, packageName, creditsAmount, amountVnd } = req.body;
       if (!creditsAmount || !amountVnd) {
@@ -769,7 +790,7 @@ async function startServer() {
       });
     }
   });
-  app.get("/api/payos/check-status/:orderCode", async (req, res) => {
+  apiRouter.get(["/payos/check-status/:orderCode", "/check-status/:orderCode"], async (req, res) => {
     try {
       const orderCode = Number(req.params.orderCode);
       if (!orderCode) {
@@ -811,7 +832,7 @@ async function startServer() {
       });
     }
   });
-  app.post("/api/payos/webhook", async (req, res) => {
+  apiRouter.post(["/payos/webhook", "/webhook"], async (req, res) => {
     try {
       const webhookData = req.body;
       console.log("[PayOS Webhook Received]:", JSON.stringify(webhookData));
@@ -893,7 +914,7 @@ async function startServer() {
     }
     return closest;
   }
-  app.post("/api/ai/replace-background", async (req, res) => {
+  apiRouter.post(["/ai/replace-background", "/replace-background"], async (req, res) => {
     try {
       const {
         image,
@@ -942,11 +963,12 @@ async function startServer() {
         validAspectRatio = aspectRatio;
       }
       console.log(`[AI Background] Starting replacement with template: ${templateName || "custom"}, size: ${validImageSize}, aspect: ${validAspectRatio}`);
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
       if (!apiKey) {
         return res.status(500).json({
           success: false,
-          error: "Ch\u01B0a c\u1EA5u h\xECnh GEMINI_API_KEY tr\xEAn h\u1EC7 th\u1ED1ng."
+          error: "Ch\u01B0a c\u1EA5u h\xECnh GEMINI_API_KEY tr\xEAn Vercel/h\u1EC7 th\u1ED1ng.",
+          message: "Ch\u01B0a t\xECm th\u1EA5y bi\u1EBFn m\xF4i tr\u01B0\u1EDDng GEMINI_API_KEY. N\u1EBFu b\u1EA1n v\u1EEBa th\xEAm tr\xEAn Vercel, vui l\xF2ng v\xE0o tab Deployments > nh\u1EA5n n\xFAt ... > ch\u1ECDn Redeploy \u0111\u1EC3 Vercel n\u1EA1p bi\u1EBFn m\xF4i tr\u01B0\u1EDDng m\u1EDBi."
         });
       }
       const ai = new import_genai.GoogleGenAI({ apiKey });
@@ -1014,8 +1036,12 @@ ${prompt}
       }
       const aiFileName = `ai_bg_${Date.now()}.png`;
       const aiFilePath = import_path.default.join(UPLOADS_DIR, aiFileName);
-      const imgBuffer = Buffer.from(generatedImageUrl.replace(/^data:image\/\w+;base64,/, ""), "base64");
-      import_fs.default.writeFileSync(aiFilePath, imgBuffer);
+      try {
+        const imgBuffer = Buffer.from(generatedImageUrl.replace(/^data:image\/\w+;base64,/, ""), "base64");
+        import_fs.default.writeFileSync(aiFilePath, imgBuffer);
+      } catch (writeErr) {
+        console.warn("[AI Background Storage] Could not persist generated file to disk:", writeErr);
+      }
       const protocol = req.headers["x-forwarded-proto"] || req.protocol;
       const host = req.headers["x-forwarded-host"] || req.get("host");
       const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
@@ -1047,7 +1073,7 @@ ${prompt}
       });
     }
   });
-  app.post("/api/ai/restore-lighting", async (req, res) => {
+  apiRouter.post(["/ai/restore-lighting", "/restore-lighting"], async (req, res) => {
     try {
       const {
         image,
@@ -1091,11 +1117,12 @@ ${prompt}
         validImageSize = imageSize;
       }
       console.log(`[AI Lighting Restoration] Starting lighting restoration, size: ${validImageSize}, aspect: ${validAspectRatio} (detected: ${detectedRatio})`);
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
       if (!apiKey) {
         return res.status(500).json({
           success: false,
-          error: "Ch\u01B0a c\u1EA5u h\xECnh GEMINI_API_KEY tr\xEAn h\u1EC7 th\u1ED1ng."
+          error: "Ch\u01B0a c\u1EA5u h\xECnh GEMINI_API_KEY tr\xEAn Vercel/h\u1EC7 th\u1ED1ng.",
+          message: "Ch\u01B0a t\xECm th\u1EA5y bi\u1EBFn m\xF4i tr\u01B0\u1EDDng GEMINI_API_KEY. N\u1EBFu b\u1EA1n v\u1EEBa th\xEAm tr\xEAn Vercel, vui l\xF2ng v\xE0o tab Deployments > nh\u1EA5n n\xFAt ... > ch\u1ECDn Redeploy \u0111\u1EC3 Vercel n\u1EA1p bi\u1EBFn m\xF4i tr\u01B0\u1EDDng m\u1EDBi."
         });
       }
       const ai = new import_genai.GoogleGenAI({ apiKey });
@@ -1143,8 +1170,12 @@ ${prompt}
       }
       const aiFileName = `ai_lighting_${Date.now()}.png`;
       const aiFilePath = import_path.default.join(UPLOADS_DIR, aiFileName);
-      const imgBuffer = Buffer.from(generatedImageUrl.replace(/^data:image\/\w+;base64,/, ""), "base64");
-      import_fs.default.writeFileSync(aiFilePath, imgBuffer);
+      try {
+        const imgBuffer = Buffer.from(generatedImageUrl.replace(/^data:image\/\w+;base64,/, ""), "base64");
+        import_fs.default.writeFileSync(aiFilePath, imgBuffer);
+      } catch (writeErr) {
+        console.warn("[AI Lighting Storage] Could not persist generated file to disk:", writeErr);
+      }
       const protocol = req.headers["x-forwarded-proto"] || req.protocol;
       const host = req.headers["x-forwarded-host"] || req.get("host");
       const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
@@ -1166,6 +1197,13 @@ ${prompt}
       });
     }
   });
+  app2.use("/api", apiRouter);
+  app2.use(apiRouter);
+  return app2;
+}
+var app = createExpressApp();
+async function startServer() {
+  const PORT = 3e3;
   if (process.env.NODE_ENV !== "production") {
     const vite = await (0, import_vite.createServer)({
       server: { middlewareMode: true },
@@ -1183,5 +1221,16 @@ ${prompt}
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }
-startServer();
+var isServerless = Boolean(
+  process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.FUNCTION_NAME
+);
+if (!isServerless) {
+  startServer();
+}
+var server_default = app;
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  app,
+  createExpressApp
+});
 //# sourceMappingURL=server.cjs.map
