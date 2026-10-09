@@ -23,6 +23,7 @@ import { useAuth } from '../lib/AuthContext';
 import { TopupCreditsModal } from './TopupCreditsModal';
 import { LIGHTING_RESTORATION_PROMPT } from '../data/lightingRestorationPrompt';
 import { HIGHLIGHT_RESTORATION_PROMPT } from '../data/highlightRestorationPrompt';
+import { parseApiResponse } from '../utils/apiHelper';
 
 interface PhotoCropModalProps {
   slot: FrameSlot | null;
@@ -197,7 +198,7 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
         }),
       });
 
-      const data = await res.json();
+      const data = await parseApiResponse(res);
       clearInterval(stepInterval);
 
       if (!res.ok || !data.success) {
@@ -295,7 +296,7 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
         }),
       });
 
-      const data = await res.json();
+      const data = await parseApiResponse(res);
       clearInterval(stepInterval);
 
       if (!res.ok || !data.success) {

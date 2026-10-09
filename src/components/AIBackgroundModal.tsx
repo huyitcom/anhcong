@@ -23,6 +23,7 @@ import { FrameSlot } from '../types';
 import { useAuth } from '../lib/AuthContext';
 import { TopupCreditsModal } from './TopupCreditsModal';
 import { useBackgroundTemplates } from '../lib/backgroundTemplatesService';
+import { parseApiResponse } from '../utils/apiHelper';
 
 interface AIBackgroundModalProps {
   isOpen: boolean;
@@ -268,7 +269,7 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
         }),
       });
 
-      const data = await res.json();
+      const data = await parseApiResponse(res);
       clearInterval(stepInterval);
 
       if (!res.ok || !data.success) {
