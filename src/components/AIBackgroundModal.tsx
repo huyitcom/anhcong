@@ -257,9 +257,14 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
       // Optimize image payload to stay well within Vercel's 4.5MB limit
       const optimizedImage = await compressImageForAi(sourceImage);
 
+      const clientApiKey = (((import.meta as any).env?.VITE_GEMINI_API_KEY as string) || '').trim();
+
       const res = await fetch('/api/ai/replace-background', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(clientApiKey ? { 'x-gemini-api-key': clientApiKey } : {}),
+        },
         body: JSON.stringify({
           image: optimizedImage,
           prompt: selectedTemplate.prompt,
@@ -269,6 +274,7 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
           preserveFraming: preserveFraming,
           userId: currentUser?.uid || '',
           userEmail: currentUser?.email || '',
+          apiKey: clientApiKey || undefined,
         }),
       });
 

@@ -4,7 +4,6 @@ dotenv.config();
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { createServer as createViteServer } from 'vite';
 import nodemailer from 'nodemailer';
 import { GoogleGenAI } from '@google/genai';
 import { PayOS } from '@payos/node';
@@ -356,6 +355,18 @@ async function sendOrderEmail(
 export function createExpressApp() {
   const app = express();
 
+  // Avoid body-parser hanging on Vercel Serverless if req.body has already been consumed
+  app.use((req, _res, next) => {
+    if (req.body !== undefined && req.body !== null) {
+      (req as any)._body = true;
+    }
+    const matchedPath = req.headers['x-matched-path'];
+    if (matchedPath && typeof matchedPath === 'string' && matchedPath.startsWith('/api')) {
+      req.url = matchedPath;
+    }
+    next();
+  });
+
   // Support large Base64 image payload (up to 100MB for 300DPI 7087x10630 canvas)
   app.use(express.json({ limit: '100mb' }));
   app.use(express.urlencoded({ limit: '100mb', extended: true }));
@@ -650,7 +661,7 @@ function detectImageAspectRatioFromBuffer(buffer: Buffer): '1:1' | '3:4' | '4:3'
         templateName,
         imageSize = '2K',
         preserveFraming = true,
-      } = req.body;
+      } = req.body || {};
 
       if (!image) {
         return res.status(400).json({ success: false, error: 'Thiếu dữ liệu hình ảnh (image).' });
@@ -689,6 +700,13 @@ function detectImageAspectRatioFromBuffer(buffer: Buffer): '1:1' | '3:4' | '4:3'
         base64Data = image;
       }
 
+      // Sanitize mimeType to valid Gemini image MIME types (strip charset, fallback to jpeg)
+      let cleanMime = (mimeType || 'image/jpeg').split(';')[0].trim().toLowerCase();
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(cleanMime)) {
+        cleanMime = 'image/jpeg';
+      }
+      mimeType = cleanMime;
+
       // Detect orientation and aspect ratio from input image buffer
       const rawImageBuffer = Buffer.from(base64Data, 'base64');
       const detectedRatio = detectImageAspectRatioFromBuffer(rawImageBuffer);
@@ -701,7 +719,15 @@ function detectImageAspectRatioFromBuffer(buffer: Buffer): '1:1' | '3:4' | '4:3'
 
       console.log(`[AI Background] Starting replacement with template: ${templateName || 'custom'}, size: ${validImageSize}, aspect: ${validAspectRatio}`);
 
-      const apiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
+      const apiKey = (
+        (req.headers['x-gemini-api-key'] as string) ||
+        req.body?.apiKey ||
+        process.env.GEMINI_API_KEY ||
+        process.env.API_KEY ||
+        process.env.VITE_GEMINI_API_KEY ||
+        ''
+      ).trim();
+
       if (!apiKey) {
         return res.status(500).json({
           success: false,
@@ -839,7 +865,7 @@ ${prompt}
         prompt,
         aspectRatio,
         imageSize = '1K',
-      } = req.body;
+      } = req.body || {};
 
       if (!image) {
         return res.status(400).json({ success: false, error: 'Thiếu dữ liệu hình ảnh (image).' });
@@ -869,6 +895,13 @@ ${prompt}
         base64Data = image;
       }
 
+      // Sanitize mimeType to valid Gemini image MIME types (strip charset, fallback to jpeg)
+      let cleanMime = (mimeType || 'image/jpeg').split(';')[0].trim().toLowerCase();
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(cleanMime)) {
+        cleanMime = 'image/jpeg';
+      }
+      mimeType = cleanMime;
+
       // Auto-detect orientation and aspect ratio from the input image buffer
       const rawImageBuffer = Buffer.from(base64Data, 'base64');
       const detectedRatio = detectImageAspectRatioFromBuffer(rawImageBuffer);
@@ -886,7 +919,15 @@ ${prompt}
 
       console.log(`[AI Lighting Restoration] Starting lighting restoration, size: ${validImageSize}, aspect: ${validAspectRatio} (detected: ${detectedRatio})`);
 
-      const apiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
+      const apiKey = (
+        (req.headers['x-gemini-api-key'] as string) ||
+        req.body?.apiKey ||
+        process.env.GEMINI_API_KEY ||
+        process.env.API_KEY ||
+        process.env.VITE_GEMINI_API_KEY ||
+        ''
+      ).trim();
+
       if (!apiKey) {
         return res.status(500).json({
           success: false,
@@ -972,10 +1013,23 @@ ${prompt}
     } catch (err: any) {
       console.error('[AI Lighting Restoration Error]', err);
       const errMsg = err?.message || String(err);
+      const isQuotaError = errMsg.includes('RESOURCE_EXHAUSTED') || errMsg.includes('quota') || errMsg.includes('429');
+      const isSuspended = errMsg.includes('CONSUMER_SUSPENDED') || errMsg.includes('suspended');
+      const isKeyInvalid = errMsg.includes('API key not valid') || (errMsg.includes('INVALID_ARGUMENT') && errMsg.includes('key'));
+
+      let userFriendlyMessage = `Lỗi xử lý cứu sáng AI: ${errMsg}`;
+      if (isKeyInvalid) {
+        userFriendlyMessage = 'Khóa GEMINI_API_KEY không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại API Key trên Google AI Studio.';
+      } else if (isSuspended) {
+        userFriendlyMessage = 'Khóa API Google Cloud của dự án đang bị tạm dừng (CONSUMER_SUSPENDED). Vui lòng kiểm tra trạng thái thanh toán trên Google Cloud Console.';
+      } else if (isQuotaError) {
+        userFriendlyMessage = 'Hệ thống đã đạt giới hạn yêu cầu AI (429 Quota limit). Vui lòng đợi 1 phút và thử lại.';
+      }
+
       return res.status(500).json({
         success: false,
         error: errMsg,
-        message: `Lỗi xử lý cứu sáng AI: ${errMsg}`,
+        message: userFriendlyMessage,
       });
     }
   });
@@ -994,6 +1048,7 @@ async function startServer() {
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',

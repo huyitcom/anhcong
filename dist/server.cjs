@@ -39,7 +39,6 @@ var import_dotenv = __toESM(require("dotenv"), 1);
 var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
 var import_fs = __toESM(require("fs"), 1);
-var import_vite = require("vite");
 var import_nodemailer = __toESM(require("nodemailer"), 1);
 var import_genai = require("@google/genai");
 var import_node = require("@payos/node");
@@ -681,6 +680,16 @@ async function sendOrderEmail(order, baseUrl) {
 }
 function createExpressApp() {
   const app2 = (0, import_express.default)();
+  app2.use((req, _res, next) => {
+    if (req.body !== void 0 && req.body !== null) {
+      req._body = true;
+    }
+    const matchedPath = req.headers["x-matched-path"];
+    if (matchedPath && typeof matchedPath === "string" && matchedPath.startsWith("/api")) {
+      req.url = matchedPath;
+    }
+    next();
+  });
   app2.use(import_express.default.json({ limit: "100mb" }));
   app2.use(import_express.default.urlencoded({ limit: "100mb", extended: true }));
   app2.use("/uploads", import_express.default.static(UPLOADS_DIR));
@@ -923,7 +932,7 @@ function createExpressApp() {
         templateName,
         imageSize = "2K",
         preserveFraming = true
-      } = req.body;
+      } = req.body || {};
       if (!image) {
         return res.status(400).json({ success: false, error: "Thi\u1EBFu d\u1EEF li\u1EC7u h\xECnh \u1EA3nh (image)." });
       }
@@ -956,6 +965,11 @@ function createExpressApp() {
       } else {
         base64Data = image;
       }
+      let cleanMime = (mimeType || "image/jpeg").split(";")[0].trim().toLowerCase();
+      if (!["image/jpeg", "image/png", "image/webp"].includes(cleanMime)) {
+        cleanMime = "image/jpeg";
+      }
+      mimeType = cleanMime;
       const rawImageBuffer = Buffer.from(base64Data, "base64");
       const detectedRatio = detectImageAspectRatioFromBuffer(rawImageBuffer);
       let validAspectRatio = detectedRatio;
@@ -963,7 +977,7 @@ function createExpressApp() {
         validAspectRatio = aspectRatio;
       }
       console.log(`[AI Background] Starting replacement with template: ${templateName || "custom"}, size: ${validImageSize}, aspect: ${validAspectRatio}`);
-      const apiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
+      const apiKey = (req.headers["x-gemini-api-key"] || req.body?.apiKey || process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
       if (!apiKey) {
         return res.status(500).json({
           success: false,
@@ -1080,7 +1094,7 @@ ${prompt}
         prompt,
         aspectRatio,
         imageSize = "1K"
-      } = req.body;
+      } = req.body || {};
       if (!image) {
         return res.status(400).json({ success: false, error: "Thi\u1EBFu d\u1EEF li\u1EC7u h\xECnh \u1EA3nh (image)." });
       }
@@ -1106,6 +1120,11 @@ ${prompt}
       } else {
         base64Data = image;
       }
+      let cleanMime = (mimeType || "image/jpeg").split(";")[0].trim().toLowerCase();
+      if (!["image/jpeg", "image/png", "image/webp"].includes(cleanMime)) {
+        cleanMime = "image/jpeg";
+      }
+      mimeType = cleanMime;
       const rawImageBuffer = Buffer.from(base64Data, "base64");
       const detectedRatio = detectImageAspectRatioFromBuffer(rawImageBuffer);
       let validAspectRatio = detectedRatio;
@@ -1117,7 +1136,7 @@ ${prompt}
         validImageSize = imageSize;
       }
       console.log(`[AI Lighting Restoration] Starting lighting restoration, size: ${validImageSize}, aspect: ${validAspectRatio} (detected: ${detectedRatio})`);
-      const apiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
+      const apiKey = (req.headers["x-gemini-api-key"] || req.body?.apiKey || process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
       if (!apiKey) {
         return res.status(500).json({
           success: false,
@@ -1190,10 +1209,21 @@ ${prompt}
     } catch (err) {
       console.error("[AI Lighting Restoration Error]", err);
       const errMsg = err?.message || String(err);
+      const isQuotaError = errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("quota") || errMsg.includes("429");
+      const isSuspended = errMsg.includes("CONSUMER_SUSPENDED") || errMsg.includes("suspended");
+      const isKeyInvalid = errMsg.includes("API key not valid") || errMsg.includes("INVALID_ARGUMENT") && errMsg.includes("key");
+      let userFriendlyMessage = `L\u1ED7i x\u1EED l\xFD c\u1EE9u s\xE1ng AI: ${errMsg}`;
+      if (isKeyInvalid) {
+        userFriendlyMessage = "Kh\xF3a GEMINI_API_KEY kh\xF4ng h\u1EE3p l\u1EC7 ho\u1EB7c \u0111\xE3 h\u1EBFt h\u1EA1n. Vui l\xF2ng ki\u1EC3m tra l\u1EA1i API Key tr\xEAn Google AI Studio.";
+      } else if (isSuspended) {
+        userFriendlyMessage = "Kh\xF3a API Google Cloud c\u1EE7a d\u1EF1 \xE1n \u0111ang b\u1ECB t\u1EA1m d\u1EEBng (CONSUMER_SUSPENDED). Vui l\xF2ng ki\u1EC3m tra tr\u1EA1ng th\xE1i thanh to\xE1n tr\xEAn Google Cloud Console.";
+      } else if (isQuotaError) {
+        userFriendlyMessage = "H\u1EC7 th\u1ED1ng \u0111\xE3 \u0111\u1EA1t gi\u1EDBi h\u1EA1n y\xEAu c\u1EA7u AI (429 Quota limit). Vui l\xF2ng \u0111\u1EE3i 1 ph\xFAt v\xE0 th\u1EED l\u1EA1i.";
+      }
       return res.status(500).json({
         success: false,
         error: errMsg,
-        message: `L\u1ED7i x\u1EED l\xFD c\u1EE9u s\xE1ng AI: ${errMsg}`
+        message: userFriendlyMessage
       });
     }
   });
@@ -1205,7 +1235,8 @@ var app = createExpressApp();
 async function startServer() {
   const PORT = 3e3;
   if (process.env.NODE_ENV !== "production") {
-    const vite = await (0, import_vite.createServer)({
+    const { createServer: createViteServer } = await import("vite");
+    const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa"
     });

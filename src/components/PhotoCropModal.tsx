@@ -190,14 +190,20 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
       // Optimize image payload to stay well within Vercel's 4.5MB limit
       const optimizedImage = await compressImageForAi(slot.imageUri);
 
+      const clientApiKey = (((import.meta as any).env?.VITE_GEMINI_API_KEY as string) || '').trim();
+
       const res = await fetch('/api/ai/restore-lighting', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(clientApiKey ? { 'x-gemini-api-key': clientApiKey } : {}),
+        },
         body: JSON.stringify({
           image: optimizedImage,
           prompt: LIGHTING_RESTORATION_PROMPT,
           imageSize: selectedResolution,
           aspectRatio: chosenAspectRatio,
+          apiKey: clientApiKey || undefined,
         }),
       });
 
@@ -291,14 +297,20 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
       // Optimize image payload to stay well within Vercel's 4.5MB limit
       const optimizedImage = await compressImageForAi(slot.imageUri);
 
+      const clientApiKey = (((import.meta as any).env?.VITE_GEMINI_API_KEY as string) || '').trim();
+
       const res = await fetch('/api/ai/restore-lighting', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(clientApiKey ? { 'x-gemini-api-key': clientApiKey } : {}),
+        },
         body: JSON.stringify({
           image: optimizedImage,
           prompt: HIGHLIGHT_RESTORATION_PROMPT,
           imageSize: selectedResolution,
           aspectRatio: chosenAspectRatio,
+          apiKey: clientApiKey || undefined,
         }),
       });
 

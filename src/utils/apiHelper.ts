@@ -15,6 +15,12 @@ export async function parseApiResponse<T = any>(response: Response): Promise<T> 
       );
     }
 
+    if (text.includes('FUNCTION_INVOCATION_FAILED')) {
+      throw new Error(
+        'Máy chủ Vercel báo lỗi thực thi (FUNCTION_INVOCATION_FAILED 500). Vui lòng kiểm tra tab Logs trên Vercel hoặc đảm bảo đã cài biến môi trường GEMINI_API_KEY cho cả Production & Preview rồi Redeploy.'
+      );
+    }
+
     if (text.includes('<!DOCTYPE') || text.includes('<html') || text.includes('Vercel')) {
       if (response.status === 404) {
         throw new Error(
@@ -41,13 +47,17 @@ export async function parseApiResponse<T = any>(response: Response): Promise<T> 
 export async function compressImageForAi(
   imageUri: string,
   maxDimension: number = 2048,
-  quality: number = 0.88
+  quality: number = 0.85
 ): Promise<string> {
-  if (!imageUri || !imageUri.startsWith('data:image')) {
+  if (!imageUri) return imageUri;
+
+  // If remote http/https url (e.g. Unsplash), server can download directly
+  if (imageUri.startsWith('http://') || imageUri.startsWith('https://')) {
     return imageUri;
   }
-  // If base64 length is already small (< 1.5MB), no need to recompress
-  if (imageUri.length < 1.5 * 1024 * 1024) {
+
+  // If base64 length is already small (< 1.2MB), no need to recompress
+  if (imageUri.startsWith('data:image') && imageUri.length < 1.2 * 1024 * 1024) {
     return imageUri;
   }
 
