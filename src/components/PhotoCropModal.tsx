@@ -23,7 +23,7 @@ import { useAuth } from '../lib/AuthContext';
 import { TopupCreditsModal } from './TopupCreditsModal';
 import { LIGHTING_RESTORATION_PROMPT } from '../data/lightingRestorationPrompt';
 import { HIGHLIGHT_RESTORATION_PROMPT } from '../data/highlightRestorationPrompt';
-import { parseApiResponse } from '../utils/apiHelper';
+import { parseApiResponse, compressImageForAi } from '../utils/apiHelper';
 
 interface PhotoCropModalProps {
   slot: FrameSlot | null;
@@ -187,11 +187,14 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
         ? getClosestGeminiAspectRatio(dims.width, dims.height)
         : (effectiveRatio > 1.15 ? '4:3' : (effectiveRatio < 0.85 ? '3:4' : '1:1'));
 
+      // Optimize image payload to stay well within Vercel's 4.5MB limit
+      const optimizedImage = await compressImageForAi(slot.imageUri);
+
       const res = await fetch('/api/ai/restore-lighting', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          image: slot.imageUri,
+          image: optimizedImage,
           prompt: LIGHTING_RESTORATION_PROMPT,
           imageSize: selectedResolution,
           aspectRatio: chosenAspectRatio,
@@ -285,11 +288,14 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
         ? getClosestGeminiAspectRatio(dims.width, dims.height)
         : (effectiveRatio > 1.15 ? '4:3' : (effectiveRatio < 0.85 ? '3:4' : '1:1'));
 
+      // Optimize image payload to stay well within Vercel's 4.5MB limit
+      const optimizedImage = await compressImageForAi(slot.imageUri);
+
       const res = await fetch('/api/ai/restore-lighting', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          image: slot.imageUri,
+          image: optimizedImage,
           prompt: HIGHLIGHT_RESTORATION_PROMPT,
           imageSize: selectedResolution,
           aspectRatio: chosenAspectRatio,

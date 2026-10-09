@@ -23,7 +23,7 @@ import { FrameSlot } from '../types';
 import { useAuth } from '../lib/AuthContext';
 import { TopupCreditsModal } from './TopupCreditsModal';
 import { useBackgroundTemplates } from '../lib/backgroundTemplatesService';
-import { parseApiResponse } from '../utils/apiHelper';
+import { parseApiResponse, compressImageForAi } from '../utils/apiHelper';
 
 interface AIBackgroundModalProps {
   isOpen: boolean;
@@ -254,11 +254,14 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
         ? getClosestGeminiAspectRatio(dims.width, dims.height)
         : '3:4';
 
+      // Optimize image payload to stay well within Vercel's 4.5MB limit
+      const optimizedImage = await compressImageForAi(sourceImage);
+
       const res = await fetch('/api/ai/replace-background', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          image: sourceImage,
+          image: optimizedImage,
           prompt: selectedTemplate.prompt,
           templateName: selectedTemplate.name_vn,
           aspectRatio: chosenAspectRatio,

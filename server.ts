@@ -58,10 +58,17 @@ interface OrderPayload {
   timestamp?: string;
 }
 
-// Ensure uploads folder exists
-const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+// Ensure uploads folder exists (use /tmp on Vercel/serverless environments)
+const UPLOADS_DIR = (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
+  ? path.join('/tmp', 'uploads')
+  : path.join(process.cwd(), 'uploads');
+
+try {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+} catch (e) {
+  console.warn('[Storage] Could not create uploads directory:', e);
 }
 
 // SMTP Configuration from Photobook Vietnam
@@ -346,9 +353,8 @@ async function sendOrderEmail(
   }
 }
 
-async function startServer() {
+export function createExpressApp() {
   const app = express();
-  const PORT = 3000;
 
   // Support large Base64 image payload (up to 100MB for 300DPI 7087x10630 canvas)
   app.use(express.json({ limit: '100mb' }));
@@ -368,18 +374,25 @@ async function startServer() {
     }
   });
 
-  // API Health Check
-  app.get('/api/health', (req, res) => {
+  const apiRouter = express.Router();
+
+  // API Health Check (used by Vercel deployment check & diagnostic)
+  apiRouter.get('/health', (req, res) => {
+    const geminiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
     res.json({
       status: 'ok',
+      geminiConfigured: Boolean(geminiKey),
+      geminiKeyLength: geminiKey ? geminiKey.length : 0,
       smtpUser: SMTP_CONFIG.user,
       targetEmails: TARGET_EMAILS,
       uploadsDir: UPLOADS_DIR,
+      isServerless: Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME),
+      timestamp: new Date().toISOString(),
     });
   });
 
   // API: Submit order & send actual email via Gmail SMTP
-  app.post('/api/order/submit', async (req, res) => {
+  apiRouter.post('/order/submit', async (req, res) => {
     const orderData: OrderPayload = req.body;
     console.log('=== [NHẬN ĐƠN ĐẶT IN MỚI 300 DPI] === Dâu rể:', orderData.groomName, orderData.brideName, 'SĐT:', orderData.customerPhone);
 
@@ -412,7 +425,7 @@ async function startServer() {
   // ==========================================
 
   // API: Create PayOS payment request
-  app.post('/api/payos/create-payment', async (req, res) => {
+  apiRouter.post('/payos/create-payment', async (req, res) => {
     try {
       const { userId, userEmail, packageName, creditsAmount, amountVnd } = req.body;
       if (!creditsAmount || !amountVnd) {
@@ -484,7 +497,7 @@ async function startServer() {
   });
 
   // API: Check payment status in real-time
-  app.get('/api/payos/check-status/:orderCode', async (req, res) => {
+  apiRouter.get('/payos/check-status/:orderCode', async (req, res) => {
     try {
       const orderCode = Number(req.params.orderCode);
       if (!orderCode) {
@@ -535,7 +548,7 @@ async function startServer() {
   });
 
   // API: Webhook callback from PayOS
-  app.post('/api/payos/webhook', async (req, res) => {
+  apiRouter.post('/payos/webhook', async (req, res) => {
     try {
       const webhookData = req.body;
       console.log('[PayOS Webhook Received]:', JSON.stringify(webhookData));
@@ -628,7 +641,7 @@ function detectImageAspectRatioFromBuffer(buffer: Buffer): '1:1' | '3:4' | '4:3'
 }
 
   // API: AI Background Replacement using Gemini Image Generation
-  app.post('/api/ai/replace-background', async (req, res) => {
+  apiRouter.post('/ai/replace-background', async (req, res) => {
     try {
       const {
         image,
@@ -688,11 +701,12 @@ function detectImageAspectRatioFromBuffer(buffer: Buffer): '1:1' | '3:4' | '4:3'
 
       console.log(`[AI Background] Starting replacement with template: ${templateName || 'custom'}, size: ${validImageSize}, aspect: ${validAspectRatio}`);
 
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
       if (!apiKey) {
         return res.status(500).json({
           success: false,
-          error: 'Chưa cấu hình GEMINI_API_KEY trên hệ thống.',
+          error: 'Chưa cấu hình GEMINI_API_KEY trên Vercel/hệ thống.',
+          message: 'Chưa tìm thấy biến môi trường GEMINI_API_KEY. Nếu bạn vừa thêm trên Vercel, vui lòng vào tab Deployments > nhấn nút ... > chọn Redeploy để Vercel nạp biến môi trường mới.',
         });
       }
 
@@ -771,11 +785,15 @@ ${prompt}
         });
       }
 
-      // Also save to uploads directory so it can be downloaded directly
+      // Also save to uploads directory so it can be downloaded directly (if filesystem is writable)
       const aiFileName = `ai_bg_${Date.now()}.png`;
       const aiFilePath = path.join(UPLOADS_DIR, aiFileName);
-      const imgBuffer = Buffer.from(generatedImageUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-      fs.writeFileSync(aiFilePath, imgBuffer);
+      try {
+        const imgBuffer = Buffer.from(generatedImageUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+        fs.writeFileSync(aiFilePath, imgBuffer);
+      } catch (writeErr) {
+        console.warn('[AI Background Storage] Could not persist generated file to disk:', writeErr);
+      }
 
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       const host = req.headers['x-forwarded-host'] || req.get('host');
@@ -814,7 +832,7 @@ ${prompt}
   });
 
   // API: AI Exposure & Lighting Restoration (Cứu Sáng)
-  app.post('/api/ai/restore-lighting', async (req, res) => {
+  apiRouter.post('/ai/restore-lighting', async (req, res) => {
     try {
       const {
         image,
@@ -868,11 +886,12 @@ ${prompt}
 
       console.log(`[AI Lighting Restoration] Starting lighting restoration, size: ${validImageSize}, aspect: ${validAspectRatio} (detected: ${detectedRatio})`);
 
-      const apiKey = process.env.GEMINI_API_KEY;
+      const apiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
       if (!apiKey) {
         return res.status(500).json({
           success: false,
-          error: 'Chưa cấu hình GEMINI_API_KEY trên hệ thống.',
+          error: 'Chưa cấu hình GEMINI_API_KEY trên Vercel/hệ thống.',
+          message: 'Chưa tìm thấy biến môi trường GEMINI_API_KEY. Nếu bạn vừa thêm trên Vercel, vui lòng vào tab Deployments > nhấn nút ... > chọn Redeploy để Vercel nạp biến môi trường mới.',
         });
       }
 
@@ -930,8 +949,12 @@ ${prompt}
 
       const aiFileName = `ai_lighting_${Date.now()}.png`;
       const aiFilePath = path.join(UPLOADS_DIR, aiFileName);
-      const imgBuffer = Buffer.from(generatedImageUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-      fs.writeFileSync(aiFilePath, imgBuffer);
+      try {
+        const imgBuffer = Buffer.from(generatedImageUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+        fs.writeFileSync(aiFilePath, imgBuffer);
+      } catch (writeErr) {
+        console.warn('[AI Lighting Storage] Could not persist generated file to disk:', writeErr);
+      }
 
       const protocol = req.headers['x-forwarded-proto'] || req.protocol;
       const host = req.headers['x-forwarded-host'] || req.get('host');
@@ -957,6 +980,18 @@ ${prompt}
     }
   });
 
+  // Mount API router on both '/api' and '/'
+  app.use('/api', apiRouter);
+  app.use(apiRouter);
+
+  return app;
+}
+
+export const app = createExpressApp();
+
+async function startServer() {
+  const PORT = 3000;
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
@@ -977,4 +1012,15 @@ ${prompt}
   });
 }
 
-startServer();
+// Only start the server when executed directly as entrypoint, NOT when imported in Vercel Serverless
+const isServerless = Boolean(
+  process.env.VERCEL ||
+  process.env.AWS_LAMBDA_FUNCTION_NAME ||
+  process.env.FUNCTION_NAME
+);
+
+if (!isServerless) {
+  startServer();
+}
+
+export default app;
