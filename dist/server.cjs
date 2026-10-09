@@ -23,11 +23,408 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 
 // server.ts
+var import_dotenv = __toESM(require("dotenv"), 1);
 var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
 var import_fs = __toESM(require("fs"), 1);
 var import_vite = require("vite");
 var import_nodemailer = __toESM(require("nodemailer"), 1);
+var import_genai = require("@google/genai");
+var import_node = require("@payos/node");
+
+// src/data/lightingRestorationPrompt.ts
+var LIGHTING_RESTORATION_PROMPT = `ROLE:
+Professional Wedding Photo Editor and Photo Restoration Specialist.
+
+TASK:
+Restore and professionally correct the exposure and lighting of the uploaded wedding photograph.
+
+This is an EXPOSURE RESTORATION and PHOTO ENHANCEMENT task ONLY.
+
+Do NOT replace the background.
+Do NOT change the composition.
+Do NOT regenerate the subjects.
+Do NOT reinterpret the photograph.
+
+The goal is to recover the photographic information hidden in the dark areas and make the original photograph look naturally well-exposed, clean and professionally photographed.
+
+==================================================
+1. PRESERVE THE ORIGINAL PHOTOGRAPH
+==================================================
+
+Treat the uploaded image as the original source photograph.
+
+Preserve exactly:
+
+- all people
+- identity
+- facial features
+- face shape
+- facial expression
+- eyes
+- nose
+- mouth
+- hairstyle
+- hairline
+- skin texture
+- skin tone
+- body proportions
+- body shape
+- pose
+- posture
+- hands
+- fingers
+- wedding dress
+- suit
+- bouquet
+- veil
+- jewelry
+- accessories
+- clothing details
+- original framing
+- original composition
+- original camera perspective
+- original background
+- original architectural elements
+
+Do not redraw or reconstruct the people.
+
+Do not change their appearance.
+
+==================================================
+2. RECOVER THE UNDEREXPOSED IMAGE
+==================================================
+
+The original photograph is significantly underexposed.
+
+Carefully recover the dark areas while maintaining realistic photographic contrast.
+
+Increase:
+
+- overall exposure
+- shadow detail
+- midtone brightness
+- facial visibility
+- clothing detail
+- background detail
+- local illumination
+
+Lift the shadows gradually and naturally.
+
+Recover details from the dark suit without making it gray or washed out.
+
+Reveal natural detail in the groom's black suit while keeping it genuinely black.
+
+Brighten the bride's face and dress naturally without overexposing the white fabric.
+
+Preserve highlight detail in the wedding dress.
+
+Do NOT simply increase brightness globally.
+
+Use intelligent tonal recovery similar to professional RAW photo development.
+
+==================================================
+3. FACE AND SKIN
+==================================================
+
+The faces are currently affected by low exposure.
+
+Recover facial visibility naturally.
+
+Make the faces clearly visible while preserving their exact original appearance.
+
+Do NOT:
+
+- change facial structure
+- change facial expression
+- enlarge eyes
+- reshape nose
+- reshape lips
+- smooth the face excessively
+- whiten the skin unnaturally
+- change skin tone
+- beautify the subjects
+- make the subjects look younger
+- create artificial makeup
+
+Preserve realistic skin texture and natural skin imperfections.
+
+The faces should look like the same people photographed with better exposure.
+
+==================================================
+4. WEDDING DRESS
+==================================================
+
+The wedding dress is white and contains important fabric folds and texture.
+
+Recover the dress detail carefully.
+
+Maintain:
+
+- natural white color
+- fabric texture
+- folds
+- shadows
+- highlights
+- original shape
+
+Do NOT turn the dress into a flat pure-white area.
+
+Do NOT clip the highlights.
+
+The dress should retain subtle dimensionality and realistic fabric detail.
+
+==================================================
+5. GROOM'S DARK SUIT
+==================================================
+
+The groom's suit is very dark and currently contains crushed shadow areas.
+
+Recover as much natural fabric detail as possible.
+
+Maintain the suit as a deep black / very dark formal suit.
+
+Do NOT turn the suit gray.
+
+Do NOT invent patterns or textures that were not present.
+
+Reveal subtle natural folds and tonal variation only where photographic information already exists.
+
+==================================================
+6. BACKGROUND
+==================================================
+
+KEEP THE ORIGINAL BACKGROUND EXACTLY.
+
+Do not replace it.
+
+Do not redesign it.
+
+Do not remove it.
+
+Do not add new objects.
+
+Do not change the architecture.
+
+Do not change the curtains.
+
+Do not change the walls.
+
+Do not change the room layout.
+
+Only improve the exposure, shadow detail, color balance and overall image quality of the existing background.
+
+The background should become naturally visible without looking artificially bright.
+
+==================================================
+7. LIGHTING CORRECTION
+==================================================
+
+Reconstruct the appearance of a properly exposed version of the ORIGINAL lighting.
+
+Do not introduce a completely new lighting direction.
+
+Do not make the scene look like it was photographed outdoors.
+
+Do not turn the image into bright daylight.
+
+Preserve the original indoor wedding atmosphere.
+
+Create soft, natural, flattering illumination across the subjects.
+
+Maintain realistic light falloff.
+
+Keep the original relationship between light and shadow.
+
+The result should feel like the photographer had used a properly exposed camera setting or gently lifted the exposure during RAW processing.
+
+==================================================
+8. COLOR CORRECTION
+==================================================
+
+Correct the color balance while preserving the original atmosphere.
+
+Improve:
+
+- white balance
+- skin color
+- neutral tones
+- shadow color
+- highlight color
+- overall tonal consistency
+
+Keep the wedding atmosphere elegant and natural.
+
+Avoid excessive orange, yellow, green or magenta color casts.
+
+The white wedding dress should remain naturally white.
+
+Skin should remain natural and realistic.
+
+==================================================
+9. SHADOW RECOVERY
+==================================================
+
+Recover crushed blacks and blocked shadows selectively.
+
+Prioritize shadow recovery around:
+
+- faces
+- hair
+- groom's suit
+- bride's dress folds
+- hands
+- bouquet
+- lower clothing
+- important background details
+
+Do not eliminate all shadows.
+
+The final photograph must still have dimensionality and depth.
+
+Maintain realistic blacks and contrast.
+
+==================================================
+10. HIGHLIGHT PROTECTION
+==================================================
+
+Protect all existing bright areas.
+
+Especially preserve detail in:
+
+- wedding dress
+- veil
+- skin highlights
+- bouquet
+- bright wall areas
+
+Do not create blown-out white regions.
+
+Do not make the image excessively bright.
+
+Use a balanced dynamic range.
+
+==================================================
+11. NO GENERATIVE RECONSTRUCTION
+==================================================
+
+This is extremely important.
+
+DO NOT hallucinate or invent photographic details.
+
+If a dark region contains insufficient information, recover it conservatively.
+
+Do not invent:
+
+- facial details
+- hair details
+- clothing patterns
+- jewelry
+- flowers
+- architectural details
+- objects
+- textures
+
+Do not replace missing information with AI-generated content.
+
+The result must remain faithful to the original photograph.
+
+==================================================
+12. IMAGE QUALITY
+==================================================
+
+After exposure recovery, apply subtle professional photographic finishing:
+
+- mild noise reduction
+- subtle sharpening
+- natural micro-contrast
+- improved dynamic range
+- clean tonal transitions
+- realistic skin texture
+- realistic fabric texture
+
+Do NOT over-sharpen.
+
+Do NOT create HDR halos.
+
+Do NOT create plastic skin.
+
+Do NOT create excessive clarity.
+
+Do NOT make the photograph look like an AI-generated image.
+
+==================================================
+13. FINAL LOOK
+==================================================
+
+The final image should look like the SAME ORIGINAL WEDDING PHOTOGRAPH photographed with correct exposure.
+
+It should feel like a professional photographer recovered the image from an underexposed RAW file.
+
+The photograph should be:
+
+- brighter
+- clearer
+- more readable
+- naturally illuminated
+- professionally color graded
+- realistic
+- elegant
+- cinematic but natural
+
+The original people and their appearance must remain unchanged.
+
+The original background must remain unchanged.
+
+Only exposure, tonal range, color balance and photographic quality should be improved.
+
+==================================================
+STRICT NEGATIVE CONSTRAINTS
+==================================================
+
+NO identity change.
+NO face regeneration.
+NO facial beautification.
+NO body reshaping.
+NO pose change.
+NO clothing change.
+NO bouquet change.
+NO background replacement.
+NO composition change.
+NO camera angle change.
+NO new objects.
+NO new people.
+NO invented details.
+NO artificial skin.
+NO excessive smoothing.
+NO excessive sharpening.
+NO HDR effect.
+NO blown highlights.
+NO crushed blacks.
+NO gray-looking black suit.
+NO overexposed wedding dress.
+NO unnatural skin whitening.
+NO daylight conversion.
+NO dramatic new lighting.
+NO cinematic relighting that changes the original scene.
+
+OUTPUT:
+A naturally restored, professionally exposed version of the original wedding photograph.
+
+Preserve the original image exactly.
+Improve ONLY exposure, shadow recovery, tonal balance, color correction and overall photographic quality.`;
+
+// server.ts
+import_dotenv.default.config();
+var PAYOS_CLIENT_ID = process.env.PAYOS_CLIENT_ID || "5f6bbed7-e4c7-4fde-82e5-1290a6b55167";
+var PAYOS_API_KEY = process.env.PAYOS_API_KEY || "64d99978-d52c-4f37-88bd-b2a3d4da42a8";
+var PAYOS_CHECKSUM_KEY = process.env.PAYOS_CHECKSUM_KEY || "9b00ffc968a8ea8599a3f2ec7c935675cc7dd043ad9df2020491478e124b50b6";
+var payos = new import_node.PayOS({
+  clientId: PAYOS_CLIENT_ID,
+  apiKey: PAYOS_API_KEY,
+  checksumKey: PAYOS_CHECKSUM_KEY
+});
+var payosOrdersCache = /* @__PURE__ */ new Map();
 var UPLOADS_DIR = import_path.default.join(process.cwd(), "uploads");
 if (!import_fs.default.existsSync(UPLOADS_DIR)) {
   import_fs.default.mkdirSync(UPLOADS_DIR, { recursive: true });
@@ -310,6 +707,464 @@ async function startServer() {
         customerPhone: orderData.customerPhone
       }
     });
+  });
+  app.post("/api/payos/create-payment", async (req, res) => {
+    try {
+      const { userId, userEmail, packageName, creditsAmount, amountVnd } = req.body;
+      if (!creditsAmount || !amountVnd) {
+        return res.status(400).json({ success: false, error: "Thi\u1EBFu th\xF4ng tin g\xF3i n\u1EA1p (creditsAmount ho\u1EB7c amountVnd)." });
+      }
+      const timestampPart = Number(String(Date.now()).slice(-6));
+      const randomPart = Math.floor(10 + Math.random() * 89);
+      const orderCode = Number(`${timestampPart}${randomPart}`);
+      const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+      const host = req.headers["x-forwarded-host"] || req.get("host");
+      const baseUrl = `${protocol}://${host}`;
+      const safeDesc = `NAP ${creditsAmount} LUOT AI`.slice(0, 25);
+      const paymentData = {
+        orderCode,
+        amount: Math.round(Number(amountVnd)),
+        description: safeDesc,
+        returnUrl: `${baseUrl}/?payment=success&orderCode=${orderCode}`,
+        cancelUrl: `${baseUrl}/?payment=cancel&orderCode=${orderCode}`
+      };
+      console.log(`[PayOS] Creating payment request for user ${userId || "anonymous"}, orderCode: ${orderCode}, amount: ${amountVnd}`);
+      const paymentResult = await payos.paymentRequests.create(paymentData);
+      const record = {
+        orderCode,
+        userId: userId || "anonymous",
+        userEmail: userEmail || "",
+        packageName: packageName || `${creditsAmount} L\u01B0\u1EE3t`,
+        creditsAmount: Number(creditsAmount),
+        amountVnd: Number(amountVnd),
+        status: "PENDING",
+        createdAt: Date.now(),
+        checkoutUrl: paymentResult.checkoutUrl,
+        qrCode: paymentResult.qrCode,
+        accountNumber: paymentResult.accountNumber,
+        accountName: paymentResult.accountName,
+        bin: paymentResult.bin,
+        description: paymentResult.description
+      };
+      payosOrdersCache.set(orderCode, record);
+      return res.json({
+        success: true,
+        orderCode,
+        paymentLinkId: paymentResult.paymentLinkId,
+        checkoutUrl: paymentResult.checkoutUrl,
+        qrCode: paymentResult.qrCode,
+        accountNumber: paymentResult.accountNumber,
+        accountName: paymentResult.accountName,
+        bin: paymentResult.bin,
+        amount: paymentResult.amount,
+        description: paymentResult.description,
+        credits: creditsAmount,
+        packageName
+      });
+    } catch (err) {
+      console.error("[PayOS Error creating payment]", err);
+      return res.status(500).json({
+        success: false,
+        error: err?.message || "Kh\xF4ng th\u1EC3 t\u1EA1o m\xE3 thanh to\xE1n PayOS"
+      });
+    }
+  });
+  app.get("/api/payos/check-status/:orderCode", async (req, res) => {
+    try {
+      const orderCode = Number(req.params.orderCode);
+      if (!orderCode) {
+        return res.status(400).json({ success: false, error: "M\xE3 \u0111\u01A1n kh\xF4ng h\u1EE3p l\u1EC7" });
+      }
+      const cachedOrder = payosOrdersCache.get(orderCode);
+      if (cachedOrder && cachedOrder.status === "PAID") {
+        return res.json({
+          success: true,
+          status: "PAID",
+          isPaid: true,
+          order: cachedOrder,
+          creditsAmount: cachedOrder.creditsAmount
+        });
+      }
+      const payosInfo = await payos.paymentRequests.get(orderCode);
+      const isPaid = payosInfo.status === "PAID";
+      if (isPaid && cachedOrder) {
+        cachedOrder.status = "PAID";
+        cachedOrder.paidAt = Date.now();
+        payosOrdersCache.set(orderCode, cachedOrder);
+      }
+      return res.json({
+        success: true,
+        status: payosInfo.status,
+        isPaid,
+        order: cachedOrder || {
+          orderCode,
+          status: payosInfo.status,
+          amountVnd: payosInfo.amount
+        },
+        creditsAmount: cachedOrder?.creditsAmount
+      });
+    } catch (err) {
+      console.error("[PayOS Status Check Error]", err);
+      return res.status(500).json({
+        success: false,
+        error: err?.message || "L\u1ED7i ki\u1EC3m tra tr\u1EA1ng th\xE1i thanh to\xE1n"
+      });
+    }
+  });
+  app.post("/api/payos/webhook", async (req, res) => {
+    try {
+      const webhookData = req.body;
+      console.log("[PayOS Webhook Received]:", JSON.stringify(webhookData));
+      let verifiedData = null;
+      try {
+        verifiedData = await payos.webhooks.verify(webhookData);
+      } catch (vErr) {
+        console.warn("[PayOS Webhook Verification Warning]:", vErr);
+      }
+      const data = verifiedData || webhookData.data || webhookData;
+      const orderCode = Number(data.orderCode);
+      const isSuccess = webhookData.code === "00" || data.code === "00" || webhookData.desc === "success" || data.desc === "success";
+      if (orderCode && isSuccess) {
+        const order = payosOrdersCache.get(orderCode);
+        if (order) {
+          order.status = "PAID";
+          order.paidAt = Date.now();
+          payosOrdersCache.set(orderCode, order);
+          console.log(`[PayOS Webhook] Order ${orderCode} verified as PAID for user ${order.userId} (+${order.creditsAmount} credits)`);
+        }
+      }
+      return res.json({ success: true, message: "Webhook processed" });
+    } catch (err) {
+      console.error("[PayOS Webhook Error]", err);
+      return res.status(200).json({ success: false, error: err?.message });
+    }
+  });
+  function detectImageAspectRatioFromBuffer(buffer) {
+    let width = 0;
+    let height = 0;
+    if (buffer && buffer.length >= 24) {
+      if (buffer[0] === 137 && buffer[1] === 80 && buffer[2] === 78 && buffer[3] === 71) {
+        width = buffer.readUInt32BE(16);
+        height = buffer.readUInt32BE(20);
+      } else if (buffer[0] === 255 && buffer[1] === 216) {
+        let offset = 2;
+        while (offset < buffer.length) {
+          if (buffer[offset] !== 255) {
+            offset++;
+            continue;
+          }
+          const marker = buffer[offset + 1];
+          if ([192, 193, 194, 195, 197, 198, 199, 201, 202, 203, 205, 206, 207].includes(marker)) {
+            if (offset + 8 < buffer.length) {
+              height = buffer.readUInt16BE(offset + 5);
+              width = buffer.readUInt16BE(offset + 7);
+            }
+            break;
+          }
+          if (marker === 217 || marker === 218) break;
+          if (offset + 4 > buffer.length) break;
+          const len = buffer.readUInt16BE(offset + 2);
+          offset += 2 + len;
+        }
+      }
+    }
+    if (!width || !height) return "3:4";
+    const ratio = width / height;
+    const candidates = [
+      { key: "9:16", val: 9 / 16 },
+      // 0.5625
+      { key: "3:4", val: 3 / 4 },
+      // 0.75
+      { key: "1:1", val: 1 },
+      // 1.0
+      { key: "4:3", val: 4 / 3 },
+      // 1.3333
+      { key: "16:9", val: 16 / 9 }
+      // 1.7778
+    ];
+    let closest = candidates[0].key;
+    let minDiff = Math.abs(ratio - candidates[0].val);
+    for (const c of candidates) {
+      const diff = Math.abs(ratio - c.val);
+      if (diff < minDiff) {
+        minDiff = diff;
+        closest = c.key;
+      }
+    }
+    return closest;
+  }
+  app.post("/api/ai/replace-background", async (req, res) => {
+    try {
+      const {
+        image,
+        prompt,
+        aspectRatio,
+        templateName,
+        imageSize = "2K",
+        preserveFraming = true
+      } = req.body;
+      if (!image) {
+        return res.status(400).json({ success: false, error: "Thi\u1EBFu d\u1EEF li\u1EC7u h\xECnh \u1EA3nh (image)." });
+      }
+      if (!prompt) {
+        return res.status(400).json({ success: false, error: "Thi\u1EBFu c\xE2u l\u1EC7nh m\xF4 t\u1EA3 ph\xF4ng n\u1EC1n (prompt)." });
+      }
+      let validImageSize = "2K";
+      if (["1K", "2K", "4K"].includes(imageSize)) {
+        validImageSize = imageSize;
+      }
+      let mimeType = "image/jpeg";
+      let base64Data = "";
+      if (image.startsWith("data:image")) {
+        const matches = image.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+        if (matches) {
+          mimeType = matches[1];
+          base64Data = matches[2];
+        } else {
+          base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+        }
+      } else if (image.startsWith("http://") || image.startsWith("https://")) {
+        const imgRes = await fetch(image);
+        if (!imgRes.ok) {
+          throw new Error(`Kh\xF4ng th\u1EC3 t\u1EA3i \u1EA3nh ngu\u1ED3n: HTTP ${imgRes.status}`);
+        }
+        const arrayBuf = await imgRes.arrayBuffer();
+        const buf = Buffer.from(arrayBuf);
+        mimeType = imgRes.headers.get("content-type") || "image/jpeg";
+        base64Data = buf.toString("base64");
+      } else {
+        base64Data = image;
+      }
+      const rawImageBuffer = Buffer.from(base64Data, "base64");
+      const detectedRatio = detectImageAspectRatioFromBuffer(rawImageBuffer);
+      let validAspectRatio = detectedRatio;
+      if (aspectRatio && ["1:1", "3:4", "4:3", "9:16", "16:9"].includes(aspectRatio)) {
+        validAspectRatio = aspectRatio;
+      }
+      console.log(`[AI Background] Starting replacement with template: ${templateName || "custom"}, size: ${validImageSize}, aspect: ${validAspectRatio}`);
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({
+          success: false,
+          error: "Ch\u01B0a c\u1EA5u h\xECnh GEMINI_API_KEY tr\xEAn h\u1EC7 th\u1ED1ng."
+        });
+      }
+      const ai = new import_genai.GoogleGenAI({ apiKey });
+      const masterPrompt = `
+CRITICAL INSTRUCTIONS FOR PHOTO EDITING & IDENTITY PRESERVATION:
+1. STRICT FACE & IDENTITY LOCK:
+   - You MUST keep the EXACT original faces of both the bride and the groom 100% identical and unchanged.
+   - Do NOT regenerate, reshape, swap, beautify, smooth out, or alter their eyes, eyebrows, nose, mouth, smile, teeth, jawline, skin tone, or hairstyle.
+   - The facial features, expressions, and genuine facial likeness must remain perfectly true to the original people.
+
+2. PRESERVE ORIGINAL FRAMING & SUBJECT SCALE:
+   ${preserveFraming ? "- The couple in the input photo must remain in the foreground at their EXACT SAME SCALE, zoom level, and cropping. If the input image is a half-body / waist-up shot, DO NOT zoom out to show full-length feet or floor. Keep them in the medium close-up foreground. Position the background decorative elements (arch, doorway, florals) harmoniously BEHIND and AROUND them at their current scale." : "- Maintain natural realistic proportions for the couple without distorting or minimizing them."}
+
+3. PRESERVE ATTIRE & ACCESSORIES:
+   - Keep the bride's wedding dress, veil, jewelry, hairstyle, and bouquet intact.
+   - Keep the groom's tuxedo/suit, bow tie/tie, and accessories intact.
+
+4. SEAMLESS BACKGROUND COMPOSITING:
+   - ONLY replace the background behind and around the couple with the specified scene below.
+   - Seamlessly harmonize lighting, directional rim light, shadows, and subtle color reflections so the subjects look as though they were originally photographed in this new location.
+
+TARGET BACKGROUND SCENE:
+${prompt}
+`.trim();
+      console.log(`[AI Background] Calling Gemini model with size ${validImageSize} and prompt length ${masterPrompt.length}...`);
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-flash-image",
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                data: base64Data,
+                mimeType
+              }
+            },
+            {
+              text: masterPrompt
+            }
+          ]
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: validAspectRatio,
+            imageSize: validImageSize
+          }
+        }
+      });
+      let generatedImageUrl = null;
+      let generatedText = null;
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+          const imgMime = part.inlineData.mimeType || "image/png";
+          generatedImageUrl = `data:${imgMime};base64,${part.inlineData.data}`;
+          break;
+        } else if (part.text) {
+          generatedText = part.text;
+        }
+      }
+      if (!generatedImageUrl) {
+        console.warn("[AI Background] Model returned no image part. Text:", generatedText);
+        return res.status(500).json({
+          success: false,
+          error: generatedText || "AI kh\xF4ng th\u1EC3 t\u1EA1o \u0111\u01B0\u1EE3c h\xECnh \u1EA3nh cho ph\xF4ng n\u1EC1n n\xE0y. Vui l\xF2ng th\u1EED l\u1EA1i v\u1EDBi m\u1EABu ph\xF4ng n\u1EC1n kh\xE1c."
+        });
+      }
+      const aiFileName = `ai_bg_${Date.now()}.png`;
+      const aiFilePath = import_path.default.join(UPLOADS_DIR, aiFileName);
+      const imgBuffer = Buffer.from(generatedImageUrl.replace(/^data:image\/\w+;base64,/, ""), "base64");
+      import_fs.default.writeFileSync(aiFilePath, imgBuffer);
+      const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+      const host = req.headers["x-forwarded-host"] || req.get("host");
+      const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
+      console.log(`[AI Background] Success! Generated image saved to ${aiFilePath}`);
+      return res.json({
+        success: true,
+        imageUrl: generatedImageUrl,
+        staticUrl,
+        fileName: aiFileName,
+        resolution: validImageSize
+      });
+    } catch (err) {
+      console.error("[AI Background Error]", err);
+      const errMsg = err?.message || String(err);
+      const isQuotaError = errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("quota") || errMsg.includes("429");
+      const isSuspended = errMsg.includes("CONSUMER_SUSPENDED") || errMsg.includes("suspended");
+      let userFriendlyMessage = `L\u1ED7i x\u1EED l\xFD AI: ${errMsg}`;
+      if (isSuspended) {
+        userFriendlyMessage = "Kh\xF3a API Google Cloud c\u1EE7a d\u1EF1 \xE1n \u0111ang b\u1ECB t\u1EA1m d\u1EEBng (CONSUMER_SUSPENDED). B\u1EA1n vui l\xF2ng ki\u1EC3m tra tr\u1EA1ng th\xE1i t\xE0i kho\u1EA3n thanh to\xE1n tr\xEAn Google Cloud Console ho\u1EB7c ch\u1ECDn d\u1EF1 \xE1n kh\xE1c.";
+      } else if (isQuotaError) {
+        userFriendlyMessage = "T\xEDnh n\u0103ng Thay N\u1EC1n AI c\u1EA7n k\xEDch ho\u1EA1t g\xF3i t\xE0i nguy\xEAn Google Cloud (Paid API Key). Vui l\xF2ng c\u1EA5u h\xECnh thanh to\xE1n \u0111\u1EC3 ti\u1EBFp t\u1EE5c s\u1EED d\u1EE5ng kh\xF4ng gi\u1EDBi h\u1EA1n.";
+      }
+      return res.status(500).json({
+        success: false,
+        error: errMsg,
+        isQuotaError,
+        isSuspended,
+        message: userFriendlyMessage
+      });
+    }
+  });
+  app.post("/api/ai/restore-lighting", async (req, res) => {
+    try {
+      const {
+        image,
+        prompt,
+        aspectRatio,
+        imageSize = "1K"
+      } = req.body;
+      if (!image) {
+        return res.status(400).json({ success: false, error: "Thi\u1EBFu d\u1EEF li\u1EC7u h\xECnh \u1EA3nh (image)." });
+      }
+      let mimeType = "image/jpeg";
+      let base64Data = "";
+      if (image.startsWith("data:image")) {
+        const matches = image.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+        if (matches) {
+          mimeType = matches[1];
+          base64Data = matches[2];
+        } else {
+          base64Data = image.replace(/^data:image\/\w+;base64,/, "");
+        }
+      } else if (image.startsWith("http://") || image.startsWith("https://")) {
+        const imgRes = await fetch(image);
+        if (!imgRes.ok) {
+          throw new Error(`Kh\xF4ng th\u1EC3 t\u1EA3i \u1EA3nh ngu\u1ED3n: HTTP ${imgRes.status}`);
+        }
+        const arrayBuf = await imgRes.arrayBuffer();
+        const buf = Buffer.from(arrayBuf);
+        mimeType = imgRes.headers.get("content-type") || "image/jpeg";
+        base64Data = buf.toString("base64");
+      } else {
+        base64Data = image;
+      }
+      const rawImageBuffer = Buffer.from(base64Data, "base64");
+      const detectedRatio = detectImageAspectRatioFromBuffer(rawImageBuffer);
+      let validAspectRatio = detectedRatio;
+      if (aspectRatio && ["1:1", "3:4", "4:3", "9:16", "16:9"].includes(aspectRatio)) {
+        validAspectRatio = aspectRatio;
+      }
+      let validImageSize = "1K";
+      if (["1K", "2K", "4K"].includes(imageSize)) {
+        validImageSize = imageSize;
+      }
+      console.log(`[AI Lighting Restoration] Starting lighting restoration, size: ${validImageSize}, aspect: ${validAspectRatio} (detected: ${detectedRatio})`);
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({
+          success: false,
+          error: "Ch\u01B0a c\u1EA5u h\xECnh GEMINI_API_KEY tr\xEAn h\u1EC7 th\u1ED1ng."
+        });
+      }
+      const ai = new import_genai.GoogleGenAI({ apiKey });
+      const restorationPrompt = prompt && typeof prompt === "string" && prompt.trim().length > 0 ? prompt.trim() : LIGHTING_RESTORATION_PROMPT;
+      console.log(`[AI Lighting Restoration] Calling Gemini model with prompt length ${restorationPrompt.length}...`);
+      const response = await ai.models.generateContent({
+        model: "gemini-3.1-flash-image",
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                data: base64Data,
+                mimeType
+              }
+            },
+            {
+              text: restorationPrompt
+            }
+          ]
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: validAspectRatio,
+            imageSize: validImageSize
+          }
+        }
+      });
+      let generatedImageUrl = null;
+      let generatedText = null;
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+          const imgMime = part.inlineData.mimeType || "image/png";
+          generatedImageUrl = `data:${imgMime};base64,${part.inlineData.data}`;
+          break;
+        } else if (part.text) {
+          generatedText = part.text;
+        }
+      }
+      if (!generatedImageUrl) {
+        console.warn("[AI Lighting Restoration] Model returned no image part. Text:", generatedText);
+        return res.status(500).json({
+          success: false,
+          error: generatedText || "AI kh\xF4ng th\u1EC3 t\u1EA1o \u0111\u01B0\u1EE3c h\xECnh \u1EA3nh c\u1EE9u s\xE1ng. Vui l\xF2ng th\u1EED l\u1EA1i."
+        });
+      }
+      const aiFileName = `ai_lighting_${Date.now()}.png`;
+      const aiFilePath = import_path.default.join(UPLOADS_DIR, aiFileName);
+      const imgBuffer = Buffer.from(generatedImageUrl.replace(/^data:image\/\w+;base64,/, ""), "base64");
+      import_fs.default.writeFileSync(aiFilePath, imgBuffer);
+      const protocol = req.headers["x-forwarded-proto"] || req.protocol;
+      const host = req.headers["x-forwarded-host"] || req.get("host");
+      const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
+      console.log(`[AI Lighting Restoration] Success! Restored image saved to ${aiFilePath}`);
+      return res.json({
+        success: true,
+        imageUrl: generatedImageUrl,
+        staticUrl,
+        fileName: aiFileName,
+        resolution: validImageSize
+      });
+    } catch (err) {
+      console.error("[AI Lighting Restoration Error]", err);
+      const errMsg = err?.message || String(err);
+      return res.status(500).json({
+        success: false,
+        error: errMsg,
+        message: `L\u1ED7i x\u1EED l\xFD c\u1EE9u s\xE1ng AI: ${errMsg}`
+      });
+    }
   });
   if (process.env.NODE_ENV !== "production") {
     const vite = await (0, import_vite.createServer)({

@@ -36,6 +36,7 @@ export interface TextConfig {
 
   textAlign: 'center' | 'left' | 'right';
   textUppercase: boolean;
+  showText?: boolean;
 }
 
 export type AspectRatioType = '2:3' | '3:2' | '3:4' | '1:1' | '9:16' | '22:30' | '80:180';
@@ -53,6 +54,7 @@ export interface PosterSettings {
 }
 
 export type TemplateId =
+  | 'ai-full-frame'
   | 'classic-10'
   | 'hero-mosaic-13'
   | 'editorial-5'
@@ -74,7 +76,7 @@ export type TemplateId =
   | 'standee-welcome-stacked-3'
   | 'standee-welcome-grid-6';
 
-export type TemplateCategory = 'anh-cong' | 'hop-album' | 'standee';
+export type TemplateCategory = 'anh-cong-ai' | 'anh-cong' | 'hop-album' | 'standee';
 
 export interface TemplateDefinition {
   id: TemplateId;

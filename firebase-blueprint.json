@@ -1,0 +1,114 @@
+{
+  "entities": {
+    "user": {
+      "title": "User Profile",
+      "description": "User profile with role and AI render credits tracking",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "vip", "user"] },
+        "credits": { "type": "number" },
+        "totalRendered": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "topupRequest": {
+      "title": "Top-up Request",
+      "description": "Payment and credit top-up requests submitted by users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "packageName": { "type": "string" },
+        "creditsAmount": { "type": "number" },
+        "amountVnd": { "type": "number" },
+        "transferCode": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "completed", "cancelled"] },
+        "createdAt": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["userId", "creditsAmount", "amountVnd", "transferCode", "status"]
+    },
+    "payosOrder": {
+      "title": "PayOS Order",
+      "description": "Automated PayOS VietQR payment orders for credit topup",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderCode": { "type": "number" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "packageName": { "type": "string" },
+        "creditsAmount": { "type": "number" },
+        "amountVnd": { "type": "number" },
+        "status": { "type": "string", "enum": ["PENDING", "PAID", "CANCELLED"] },
+        "createdAt": { "type": "string" },
+        "paidAt": { "type": "string" }
+      },
+      "required": ["orderCode", "userId", "creditsAmount", "amountVnd", "status"]
+    },
+    "renderLog": {
+      "title": "Render Log",
+      "description": "Log of AI background replacements and credits consumed",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "resolution": { "type": "string", "enum": ["1K", "2K", "4K"] },
+        "creditsDeducted": { "type": "number" },
+        "templateName": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["userId", "resolution", "creditsDeducted", "templateName"]
+    },
+    "aiBackgroundTemplate": {
+      "title": "AI Background Template",
+      "description": "AI background replacement preset template with prompt and thumbnail",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "name_vn": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "prompt": { "type": "string" },
+        "category": { "type": "string", "enum": ["wedding-arch", "indoor-studio", "nature-outdoor", "art-luxury"] },
+        "isActive": { "type": "boolean" },
+        "order": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "name_vn", "thumbnailUrl", "prompt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "user",
+      "description": "User profiles and render credits"
+    },
+    "/topupRequests/{requestId}": {
+      "schema": "topupRequest",
+      "description": "Top-up requests created by users and reviewed by admins"
+    },
+    "/payosOrders/{orderId}": {
+      "schema": "payosOrder",
+      "description": "PayOS payment orders and status"
+    },
+    "/renderLogs/{logId}": {
+      "schema": "renderLog",
+      "description": "Logs of user AI rendering operations"
+    },
+    "/aiBackgroundTemplates/{templateId}": {
+      "schema": "aiBackgroundTemplate",
+      "description": "AI background templates for replacing backgrounds"
+    }
+  }
+}

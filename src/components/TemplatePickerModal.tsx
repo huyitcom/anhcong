@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Check, LayoutGrid } from 'lucide-react';
+import { X, Check, LayoutGrid, Sparkles } from 'lucide-react';
 import { TemplateId, TemplateDefinition } from '../types';
 import { TEMPLATES } from '../data/constants';
 import { TemplateThumbnail } from './EditorSidebar';
@@ -17,11 +17,12 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
   currentTemplateId,
   onSelectTemplate,
 }) => {
-  const [filter, setFilter] = useState<'all' | 'anh-cong' | 'hop-album' | 'standee'>('all');
+  const [filter, setFilter] = useState<'all' | 'anh-cong-ai' | 'anh-cong' | 'hop-album' | 'standee'>('all');
 
   if (!isOpen) return null;
 
   const filteredTemplates = TEMPLATES.filter((tmpl) => {
+    if (filter === 'anh-cong-ai') return tmpl.category === 'anh-cong-ai';
     if (filter === 'anh-cong') return tmpl.category === 'anh-cong';
     if (filter === 'hop-album') return tmpl.category === 'hop-album';
     if (filter === 'standee') return tmpl.category === 'standee';
@@ -67,7 +68,7 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
           </button>
         </div>
 
-        {/* Filter Categories: Ảnh cổng (1-10) | Hộp đựng album (11-14) | Standee (15-17) */}
+        {/* Filter Categories: Tất cả | Ảnh Cổng AI | Ảnh cổng (1-10) | Hộp đựng album (11-14) | Standee (15-20) */}
         <div className="flex px-3 sm:px-6 py-2.5 sm:py-3 border-b border-stone-100 bg-white items-center justify-between overflow-x-auto hide-scrollbar gap-2">
           <div className="flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl shrink-0">
             <button
@@ -81,6 +82,17 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
               Tất Cả ({TEMPLATES.length})
             </button>
             <button
+              onClick={() => setFilter('anh-cong-ai')}
+              className={`px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                filter === 'anh-cong-ai'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xs'
+                  : 'text-purple-700 hover:text-purple-900 hover:bg-purple-50'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Ảnh Cổng AI ({TEMPLATES.filter((t) => t.category === 'anh-cong-ai').length})</span>
+            </button>
+            <button
               onClick={() => setFilter('anh-cong')}
               className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition cursor-pointer whitespace-nowrap ${
                 filter === 'anh-cong'
@@ -88,7 +100,7 @@ export const TemplatePickerModal: React.FC<TemplatePickerModalProps> = ({
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
-              Ảnh cổng ({TEMPLATES.filter((t) => t.category === 'anh-cong').length})
+              Ảnh cổng ghép ({TEMPLATES.filter((t) => t.category === 'anh-cong').length})
             </button>
             <button
               onClick={() => setFilter('hop-album')}

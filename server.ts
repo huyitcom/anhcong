@@ -1,8 +1,45 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import nodemailer from 'nodemailer';
+import { GoogleGenAI } from '@google/genai';
+import { PayOS } from '@payos/node';
+import { LIGHTING_RESTORATION_PROMPT } from './src/data/lightingRestorationPrompt';
+
+// PayOS VietQR Payment Configuration
+const PAYOS_CLIENT_ID = process.env.PAYOS_CLIENT_ID || '5f6bbed7-e4c7-4fde-82e5-1290a6b55167';
+const PAYOS_API_KEY = process.env.PAYOS_API_KEY || '64d99978-d52c-4f37-88bd-b2a3d4da42a8';
+const PAYOS_CHECKSUM_KEY = process.env.PAYOS_CHECKSUM_KEY || '9b00ffc968a8ea8599a3f2ec7c935675cc7dd043ad9df2020491478e124b50b6';
+
+const payos = new PayOS({
+  clientId: PAYOS_CLIENT_ID,
+  apiKey: PAYOS_API_KEY,
+  checksumKey: PAYOS_CHECKSUM_KEY,
+});
+
+interface PayosOrderRecord {
+  orderCode: number;
+  userId: string;
+  userEmail: string;
+  packageName: string;
+  creditsAmount: number;
+  amountVnd: number;
+  status: 'PENDING' | 'PAID' | 'CANCELLED';
+  createdAt: number;
+  paidAt?: number;
+  checkoutUrl?: string;
+  qrCode?: string;
+  accountNumber?: string;
+  accountName?: string;
+  bin?: string;
+  description?: string;
+}
+
+const payosOrdersCache = new Map<number, PayosOrderRecord>();
 
 interface OrderPayload {
   groomName?: string;
@@ -368,6 +405,556 @@ async function startServer() {
         customerPhone: orderData.customerPhone,
       },
     });
+  });
+
+  // ==========================================
+  // PAYOS VIETQR INTEGRATION ENDPOINTS
+  // ==========================================
+
+  // API: Create PayOS payment request
+  app.post('/api/payos/create-payment', async (req, res) => {
+    try {
+      const { userId, userEmail, packageName, creditsAmount, amountVnd } = req.body;
+      if (!creditsAmount || !amountVnd) {
+        return res.status(400).json({ success: false, error: 'Thiếu thông tin gói nạp (creditsAmount hoặc amountVnd).' });
+      }
+
+      // Generate unique numerical orderCode (PayOS requires an integer number up to 9007199254740991)
+      const timestampPart = Number(String(Date.now()).slice(-6));
+      const randomPart = Math.floor(10 + Math.random() * 89);
+      const orderCode = Number(`${timestampPart}${randomPart}`);
+
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.headers['x-forwarded-host'] || req.get('host');
+      const baseUrl = `${protocol}://${host}`;
+
+      // PayOS description: max 25 characters, alphanumeric without special accents
+      const safeDesc = `NAP ${creditsAmount} LUOT AI`.slice(0, 25);
+
+      const paymentData = {
+        orderCode,
+        amount: Math.round(Number(amountVnd)),
+        description: safeDesc,
+        returnUrl: `${baseUrl}/?payment=success&orderCode=${orderCode}`,
+        cancelUrl: `${baseUrl}/?payment=cancel&orderCode=${orderCode}`,
+      };
+
+      console.log(`[PayOS] Creating payment request for user ${userId || 'anonymous'}, orderCode: ${orderCode}, amount: ${amountVnd}`);
+      const paymentResult = await payos.paymentRequests.create(paymentData);
+
+      const record: PayosOrderRecord = {
+        orderCode,
+        userId: userId || 'anonymous',
+        userEmail: userEmail || '',
+        packageName: packageName || `${creditsAmount} Lượt`,
+        creditsAmount: Number(creditsAmount),
+        amountVnd: Number(amountVnd),
+        status: 'PENDING',
+        createdAt: Date.now(),
+        checkoutUrl: paymentResult.checkoutUrl,
+        qrCode: paymentResult.qrCode,
+        accountNumber: paymentResult.accountNumber,
+        accountName: paymentResult.accountName,
+        bin: paymentResult.bin,
+        description: paymentResult.description,
+      };
+      payosOrdersCache.set(orderCode, record);
+
+      return res.json({
+        success: true,
+        orderCode,
+        paymentLinkId: paymentResult.paymentLinkId,
+        checkoutUrl: paymentResult.checkoutUrl,
+        qrCode: paymentResult.qrCode,
+        accountNumber: paymentResult.accountNumber,
+        accountName: paymentResult.accountName,
+        bin: paymentResult.bin,
+        amount: paymentResult.amount,
+        description: paymentResult.description,
+        credits: creditsAmount,
+        packageName,
+      });
+    } catch (err: any) {
+      console.error('[PayOS Error creating payment]', err);
+      return res.status(500).json({
+        success: false,
+        error: err?.message || 'Không thể tạo mã thanh toán PayOS',
+      });
+    }
+  });
+
+  // API: Check payment status in real-time
+  app.get('/api/payos/check-status/:orderCode', async (req, res) => {
+    try {
+      const orderCode = Number(req.params.orderCode);
+      if (!orderCode) {
+        return res.status(400).json({ success: false, error: 'Mã đơn không hợp lệ' });
+      }
+
+      const cachedOrder = payosOrdersCache.get(orderCode);
+
+      // If already cached as PAID
+      if (cachedOrder && cachedOrder.status === 'PAID') {
+        return res.json({
+          success: true,
+          status: 'PAID',
+          isPaid: true,
+          order: cachedOrder,
+          creditsAmount: cachedOrder.creditsAmount,
+        });
+      }
+
+      // Query PayOS directly
+      const payosInfo = await payos.paymentRequests.get(orderCode);
+      const isPaid = payosInfo.status === 'PAID';
+
+      if (isPaid && cachedOrder) {
+        cachedOrder.status = 'PAID';
+        cachedOrder.paidAt = Date.now();
+        payosOrdersCache.set(orderCode, cachedOrder);
+      }
+
+      return res.json({
+        success: true,
+        status: payosInfo.status,
+        isPaid,
+        order: cachedOrder || {
+          orderCode,
+          status: payosInfo.status,
+          amountVnd: payosInfo.amount,
+        },
+        creditsAmount: cachedOrder?.creditsAmount,
+      });
+    } catch (err: any) {
+      console.error('[PayOS Status Check Error]', err);
+      return res.status(500).json({
+        success: false,
+        error: err?.message || 'Lỗi kiểm tra trạng thái thanh toán',
+      });
+    }
+  });
+
+  // API: Webhook callback from PayOS
+  app.post('/api/payos/webhook', async (req, res) => {
+    try {
+      const webhookData = req.body;
+      console.log('[PayOS Webhook Received]:', JSON.stringify(webhookData));
+
+      let verifiedData: any = null;
+      try {
+        verifiedData = await payos.webhooks.verify(webhookData);
+      } catch (vErr) {
+        console.warn('[PayOS Webhook Verification Warning]:', vErr);
+      }
+
+      const data = verifiedData || webhookData.data || webhookData;
+      const orderCode = Number(data.orderCode);
+
+      const isSuccess =
+        webhookData.code === '00' ||
+        data.code === '00' ||
+        webhookData.desc === 'success' ||
+        data.desc === 'success';
+
+      if (orderCode && isSuccess) {
+        const order = payosOrdersCache.get(orderCode);
+        if (order) {
+          order.status = 'PAID';
+          order.paidAt = Date.now();
+          payosOrdersCache.set(orderCode, order);
+          console.log(`[PayOS Webhook] Order ${orderCode} verified as PAID for user ${order.userId} (+${order.creditsAmount} credits)`);
+        }
+      }
+
+      return res.json({ success: true, message: 'Webhook processed' });
+    } catch (err: any) {
+      console.error('[PayOS Webhook Error]', err);
+      return res.status(200).json({ success: false, error: err?.message });
+    }
+  });
+
+// Detect natural dimensions and closest Gemini aspect ratio from image buffer
+function detectImageAspectRatioFromBuffer(buffer: Buffer): '1:1' | '3:4' | '4:3' | '9:16' | '16:9' {
+  let width = 0;
+  let height = 0;
+
+  if (buffer && buffer.length >= 24) {
+    // PNG format
+    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+      width = buffer.readUInt32BE(16);
+      height = buffer.readUInt32BE(20);
+    }
+    // JPEG format
+    else if (buffer[0] === 0xFF && buffer[1] === 0xD8) {
+      let offset = 2;
+      while (offset < buffer.length) {
+        if (buffer[offset] !== 0xFF) { offset++; continue; }
+        const marker = buffer[offset + 1];
+        if ([0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF].includes(marker)) {
+          if (offset + 8 < buffer.length) {
+            height = buffer.readUInt16BE(offset + 5);
+            width = buffer.readUInt16BE(offset + 7);
+          }
+          break;
+        }
+        if (marker === 0xD9 || marker === 0xDA) break;
+        if (offset + 4 > buffer.length) break;
+        const len = buffer.readUInt16BE(offset + 2);
+        offset += 2 + len;
+      }
+    }
+  }
+
+  if (!width || !height) return '3:4';
+
+  const ratio = width / height;
+  const candidates: { key: '1:1' | '3:4' | '4:3' | '9:16' | '16:9'; val: number }[] = [
+    { key: '9:16', val: 9 / 16 }, // 0.5625
+    { key: '3:4', val: 3 / 4 },   // 0.75
+    { key: '1:1', val: 1.0 },     // 1.0
+    { key: '4:3', val: 4 / 3 },   // 1.3333
+    { key: '16:9', val: 16 / 9 }, // 1.7778
+  ];
+  let closest = candidates[0].key;
+  let minDiff = Math.abs(ratio - candidates[0].val);
+  for (const c of candidates) {
+    const diff = Math.abs(ratio - c.val);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = c.key;
+    }
+  }
+  return closest;
+}
+
+  // API: AI Background Replacement using Gemini Image Generation
+  app.post('/api/ai/replace-background', async (req, res) => {
+    try {
+      const {
+        image,
+        prompt,
+        aspectRatio,
+        templateName,
+        imageSize = '2K',
+        preserveFraming = true,
+      } = req.body;
+
+      if (!image) {
+        return res.status(400).json({ success: false, error: 'Thiếu dữ liệu hình ảnh (image).' });
+      }
+      if (!prompt) {
+        return res.status(400).json({ success: false, error: 'Thiếu câu lệnh mô tả phông nền (prompt).' });
+      }
+
+      // Valid image sizes: '1K', '2K', '4K'
+      let validImageSize: '1K' | '2K' | '4K' = '2K';
+      if (['1K', '2K', '4K'].includes(imageSize)) {
+        validImageSize = imageSize as any;
+      }
+
+      let mimeType = 'image/jpeg';
+      let base64Data = '';
+
+      if (image.startsWith('data:image')) {
+        const matches = image.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+        if (matches) {
+          mimeType = matches[1];
+          base64Data = matches[2];
+        } else {
+          base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+        }
+      } else if (image.startsWith('http://') || image.startsWith('https://')) {
+        const imgRes = await fetch(image);
+        if (!imgRes.ok) {
+          throw new Error(`Không thể tải ảnh nguồn: HTTP ${imgRes.status}`);
+        }
+        const arrayBuf = await imgRes.arrayBuffer();
+        const buf = Buffer.from(arrayBuf);
+        mimeType = imgRes.headers.get('content-type') || 'image/jpeg';
+        base64Data = buf.toString('base64');
+      } else {
+        base64Data = image;
+      }
+
+      // Detect orientation and aspect ratio from input image buffer
+      const rawImageBuffer = Buffer.from(base64Data, 'base64');
+      const detectedRatio = detectImageAspectRatioFromBuffer(rawImageBuffer);
+
+      // Valid aspect ratios for Gemini Image: '1:1', '3:4', '4:3', '9:16', '16:9'
+      let validAspectRatio: '1:1' | '3:4' | '4:3' | '9:16' | '16:9' = detectedRatio;
+      if (aspectRatio && ['1:1', '3:4', '4:3', '9:16', '16:9'].includes(aspectRatio)) {
+        validAspectRatio = aspectRatio as any;
+      }
+
+      console.log(`[AI Background] Starting replacement with template: ${templateName || 'custom'}, size: ${validImageSize}, aspect: ${validAspectRatio}`);
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({
+          success: false,
+          error: 'Chưa cấu hình GEMINI_API_KEY trên hệ thống.',
+        });
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+
+      // Build master prompt with strict face and identity preservation rules
+      const masterPrompt = `
+CRITICAL INSTRUCTIONS FOR PHOTO EDITING & IDENTITY PRESERVATION:
+1. STRICT FACE & IDENTITY LOCK:
+   - You MUST keep the EXACT original faces of both the bride and the groom 100% identical and unchanged.
+   - Do NOT regenerate, reshape, swap, beautify, smooth out, or alter their eyes, eyebrows, nose, mouth, smile, teeth, jawline, skin tone, or hairstyle.
+   - The facial features, expressions, and genuine facial likeness must remain perfectly true to the original people.
+
+2. PRESERVE ORIGINAL FRAMING & SUBJECT SCALE:
+   ${
+     preserveFraming
+       ? '- The couple in the input photo must remain in the foreground at their EXACT SAME SCALE, zoom level, and cropping. If the input image is a half-body / waist-up shot, DO NOT zoom out to show full-length feet or floor. Keep them in the medium close-up foreground. Position the background decorative elements (arch, doorway, florals) harmoniously BEHIND and AROUND them at their current scale.'
+       : '- Maintain natural realistic proportions for the couple without distorting or minimizing them.'
+   }
+
+3. PRESERVE ATTIRE & ACCESSORIES:
+   - Keep the bride\'s wedding dress, veil, jewelry, hairstyle, and bouquet intact.
+   - Keep the groom\'s tuxedo/suit, bow tie/tie, and accessories intact.
+
+4. SEAMLESS BACKGROUND COMPOSITING:
+   - ONLY replace the background behind and around the couple with the specified scene below.
+   - Seamlessly harmonize lighting, directional rim light, shadows, and subtle color reflections so the subjects look as though they were originally photographed in this new location.
+
+TARGET BACKGROUND SCENE:
+${prompt}
+`.trim();
+
+      console.log(`[AI Background] Calling Gemini model with size ${validImageSize} and prompt length ${masterPrompt.length}...`);
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-image',
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                data: base64Data,
+                mimeType: mimeType,
+              },
+            },
+            {
+              text: masterPrompt,
+            },
+          ],
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: validAspectRatio,
+            imageSize: validImageSize,
+          },
+        },
+      });
+
+      let generatedImageUrl: string | null = null;
+      let generatedText: string | null = null;
+
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+          const imgMime = part.inlineData.mimeType || 'image/png';
+          generatedImageUrl = `data:${imgMime};base64,${part.inlineData.data}`;
+          break;
+        } else if (part.text) {
+          generatedText = part.text;
+        }
+      }
+
+      if (!generatedImageUrl) {
+        console.warn('[AI Background] Model returned no image part. Text:', generatedText);
+        return res.status(500).json({
+          success: false,
+          error: generatedText || 'AI không thể tạo được hình ảnh cho phông nền này. Vui lòng thử lại với mẫu phông nền khác.',
+        });
+      }
+
+      // Also save to uploads directory so it can be downloaded directly
+      const aiFileName = `ai_bg_${Date.now()}.png`;
+      const aiFilePath = path.join(UPLOADS_DIR, aiFileName);
+      const imgBuffer = Buffer.from(generatedImageUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+      fs.writeFileSync(aiFilePath, imgBuffer);
+
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.headers['x-forwarded-host'] || req.get('host');
+      const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
+
+      console.log(`[AI Background] Success! Generated image saved to ${aiFilePath}`);
+
+      return res.json({
+        success: true,
+        imageUrl: generatedImageUrl,
+        staticUrl,
+        fileName: aiFileName,
+        resolution: validImageSize,
+      });
+    } catch (err: any) {
+      console.error('[AI Background Error]', err);
+      const errMsg = err?.message || String(err);
+      const isQuotaError = errMsg.includes('RESOURCE_EXHAUSTED') || errMsg.includes('quota') || errMsg.includes('429');
+      const isSuspended = errMsg.includes('CONSUMER_SUSPENDED') || errMsg.includes('suspended');
+
+      let userFriendlyMessage = `Lỗi xử lý AI: ${errMsg}`;
+      if (isSuspended) {
+        userFriendlyMessage = 'Khóa API Google Cloud của dự án đang bị tạm dừng (CONSUMER_SUSPENDED). Bạn vui lòng kiểm tra trạng thái tài khoản thanh toán trên Google Cloud Console hoặc chọn dự án khác.';
+      } else if (isQuotaError) {
+        userFriendlyMessage = 'Tính năng Thay Nền AI cần kích hoạt gói tài nguyên Google Cloud (Paid API Key). Vui lòng cấu hình thanh toán để tiếp tục sử dụng không giới hạn.';
+      }
+
+      return res.status(500).json({
+        success: false,
+        error: errMsg,
+        isQuotaError,
+        isSuspended,
+        message: userFriendlyMessage,
+      });
+    }
+  });
+
+  // API: AI Exposure & Lighting Restoration (Cứu Sáng)
+  app.post('/api/ai/restore-lighting', async (req, res) => {
+    try {
+      const {
+        image,
+        prompt,
+        aspectRatio,
+        imageSize = '1K',
+      } = req.body;
+
+      if (!image) {
+        return res.status(400).json({ success: false, error: 'Thiếu dữ liệu hình ảnh (image).' });
+      }
+
+      let mimeType = 'image/jpeg';
+      let base64Data = '';
+
+      if (image.startsWith('data:image')) {
+        const matches = image.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+        if (matches) {
+          mimeType = matches[1];
+          base64Data = matches[2];
+        } else {
+          base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+        }
+      } else if (image.startsWith('http://') || image.startsWith('https://')) {
+        const imgRes = await fetch(image);
+        if (!imgRes.ok) {
+          throw new Error(`Không thể tải ảnh nguồn: HTTP ${imgRes.status}`);
+        }
+        const arrayBuf = await imgRes.arrayBuffer();
+        const buf = Buffer.from(arrayBuf);
+        mimeType = imgRes.headers.get('content-type') || 'image/jpeg';
+        base64Data = buf.toString('base64');
+      } else {
+        base64Data = image;
+      }
+
+      // Auto-detect orientation and aspect ratio from the input image buffer
+      const rawImageBuffer = Buffer.from(base64Data, 'base64');
+      const detectedRatio = detectImageAspectRatioFromBuffer(rawImageBuffer);
+
+      // Valid aspect ratios for Gemini: '1:1', '3:4', '4:3', '9:16', '16:9'
+      let validAspectRatio: '1:1' | '3:4' | '4:3' | '9:16' | '16:9' = detectedRatio;
+      if (aspectRatio && ['1:1', '3:4', '4:3', '9:16', '16:9'].includes(aspectRatio)) {
+        validAspectRatio = aspectRatio as any;
+      }
+
+      let validImageSize: '1K' | '2K' | '4K' = '1K';
+      if (['1K', '2K', '4K'].includes(imageSize)) {
+        validImageSize = imageSize as any;
+      }
+
+      console.log(`[AI Lighting Restoration] Starting lighting restoration, size: ${validImageSize}, aspect: ${validAspectRatio} (detected: ${detectedRatio})`);
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({
+          success: false,
+          error: 'Chưa cấu hình GEMINI_API_KEY trên hệ thống.',
+        });
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+
+      const restorationPrompt = (prompt && typeof prompt === 'string' && prompt.trim().length > 0)
+        ? prompt.trim()
+        : LIGHTING_RESTORATION_PROMPT;
+
+      console.log(`[AI Lighting Restoration] Calling Gemini model with prompt length ${restorationPrompt.length}...`);
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-image',
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                data: base64Data,
+                mimeType: mimeType,
+              },
+            },
+            {
+              text: restorationPrompt,
+            },
+          ],
+        },
+        config: {
+          imageConfig: {
+            aspectRatio: validAspectRatio,
+            imageSize: validImageSize,
+          },
+        },
+      });
+
+      let generatedImageUrl: string | null = null;
+      let generatedText: string | null = null;
+
+      for (const part of response.candidates?.[0]?.content?.parts || []) {
+        if (part.inlineData) {
+          const imgMime = part.inlineData.mimeType || 'image/png';
+          generatedImageUrl = `data:${imgMime};base64,${part.inlineData.data}`;
+          break;
+        } else if (part.text) {
+          generatedText = part.text;
+        }
+      }
+
+      if (!generatedImageUrl) {
+        console.warn('[AI Lighting Restoration] Model returned no image part. Text:', generatedText);
+        return res.status(500).json({
+          success: false,
+          error: generatedText || 'AI không thể tạo được hình ảnh cứu sáng. Vui lòng thử lại.',
+        });
+      }
+
+      const aiFileName = `ai_lighting_${Date.now()}.png`;
+      const aiFilePath = path.join(UPLOADS_DIR, aiFileName);
+      const imgBuffer = Buffer.from(generatedImageUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+      fs.writeFileSync(aiFilePath, imgBuffer);
+
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.headers['x-forwarded-host'] || req.get('host');
+      const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
+
+      console.log(`[AI Lighting Restoration] Success! Restored image saved to ${aiFilePath}`);
+
+      return res.json({
+        success: true,
+        imageUrl: generatedImageUrl,
+        staticUrl,
+        fileName: aiFileName,
+        resolution: validImageSize,
+      });
+    } catch (err: any) {
+      console.error('[AI Lighting Restoration Error]', err);
+      const errMsg = err?.message || String(err);
+      return res.status(500).json({
+        success: false,
+        error: errMsg,
+        message: `Lỗi xử lý cứu sáng AI: ${errMsg}`,
+      });
+    }
   });
 
   // Vite middleware for development

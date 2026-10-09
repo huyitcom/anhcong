@@ -22,7 +22,9 @@ googleProvider.setCustomParameters({
   prompt: 'select_account',
 });
 
-// The shared users collection is located in the (default) database of photo-picker-507413
-export const db = getFirestore(app);
+// Initialize Firestore targeting the applet database ID if configured
+export const db = firebaseConfig.firestoreDatabaseId
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+  : getFirestore(app);
 
 export default app;

@@ -17,6 +17,7 @@ import { EditorSidebar } from './components/EditorSidebar';
 import { PhotoCropModal } from './components/PhotoCropModal';
 import { BatchUploadModal } from './components/BatchUploadModal';
 import { OrderPrintModal } from './components/OrderPrintModal';
+import { AIBackgroundModal } from './components/AIBackgroundModal';
 import { toJpeg } from 'html-to-image';
 import { setDpiInJpegDataUrl } from './utils/imageUtils';
 import { getEmbeddedFontCSS, prefetchCommonFonts } from './utils/fontEmbedder';
@@ -45,6 +46,18 @@ export default function App() {
   // Modals
   const [isBatchUploadOpen, setIsBatchUploadOpen] = useState(false);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [isAIBackgroundOpen, setIsAIBackgroundOpen] = useState(false);
+  const [aiTargetSlotIndex, setAiTargetSlotIndex] = useState(0);
+  const [aiInitialTemplateId, setAiInitialTemplateId] = useState<string | undefined>(undefined);
+
+  const handleOpenAIBackground = (_slotIndex: number = 0, templateId?: string) => {
+    // Tự động set layout số 1 (loại 1 ảnh full)
+    handleTemplateChange('ai-full-frame');
+    setActiveSlotIndex(0);
+    setAiTargetSlotIndex(0);
+    setAiInitialTemplateId(templateId);
+    setIsAIBackgroundOpen(true);
+  };
 
   const posterRef = useRef<HTMLDivElement>(null);
 
@@ -59,11 +72,28 @@ export default function App() {
     const selectedTemplate = TEMPLATES.find((t) => t.id === newTemplateId);
     const targetCount = selectedTemplate ? selectedTemplate.slotCount : 10;
 
-    if (selectedTemplate?.aspectRatio && selectedTemplate.aspectRatio !== posterSettings.aspectRatio) {
+    if (newTemplateId === 'ai-full-frame') {
       setPosterSettings((prev) => ({
         ...prev,
-        aspectRatio: selectedTemplate.aspectRatio,
+        aspectRatio: '2:3',
+        outerMargin: 0,
+        gap: 0,
       }));
+    } else {
+      if (selectedTemplate?.aspectRatio && selectedTemplate.aspectRatio !== posterSettings.aspectRatio) {
+        setPosterSettings((prev) => ({
+          ...prev,
+          aspectRatio: selectedTemplate.aspectRatio,
+          outerMargin: prev.outerMargin === 0 ? 16 : prev.outerMargin,
+          gap: prev.gap === 0 ? 6 : prev.gap,
+        }));
+      } else if (posterSettings.outerMargin === 0) {
+        setPosterSettings((prev) => ({
+          ...prev,
+          outerMargin: 16,
+          gap: 6,
+        }));
+      }
     }
 
     setSlots((prev) => {
@@ -253,6 +283,7 @@ export default function App() {
               onSlotImageChange={handleSlotImageChange}
               onUpdateSlot={handleUpdateSlot}
               onOpenCropModal={(slot, index) => setEditingSlot({ slot, index })}
+              onOpenAIBackground={handleOpenAIBackground}
               posterRef={posterRef}
             />
 
@@ -271,6 +302,9 @@ export default function App() {
           onChangeTextConfig={setTextConfig}
           posterSettings={posterSettings}
           onChangePosterSettings={setPosterSettings}
+          onOpenAIBackground={(tmplId) => {
+            handleOpenAIBackground(0, tmplId);
+          }}
         />
       </div>
 
@@ -282,6 +316,7 @@ export default function App() {
           onClose={() => setEditingSlot(null)}
           onUpdateSlot={handleUpdateSlot}
           onRemovePhoto={handleRemovePhoto}
+          onOpenAIBackground={handleOpenAIBackground}
         />
       )}
 
@@ -299,6 +334,15 @@ export default function App() {
         posterSettings={posterSettings}
         templateId={templateId}
         onGetDesignDataUrl={handleGetDesignDataUrl}
+      />
+
+      <AIBackgroundModal
+        isOpen={isAIBackgroundOpen}
+        onClose={() => setIsAIBackgroundOpen(false)}
+        slots={slots}
+        initialSlotIndex={aiTargetSlotIndex}
+        initialTemplateId={aiInitialTemplateId}
+        onApplyImageToSlot={(idx, newImg) => handleSlotImageChange(idx, newImg)}
       />
     </div>
   );

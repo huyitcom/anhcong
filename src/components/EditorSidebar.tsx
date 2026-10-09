@@ -17,8 +17,13 @@ import {
   Palette,
   Check,
   ChevronRight,
+  Sparkles,
+  Wand2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { TemplatePickerModal } from './TemplatePickerModal';
+import { useBackgroundTemplates } from '../lib/backgroundTemplatesService';
 
 interface EditorSidebarProps {
   templateId: TemplateId;
@@ -27,9 +32,11 @@ interface EditorSidebarProps {
   onChangeTextConfig: (updated: TextConfig) => void;
   posterSettings: PosterSettings;
   onChangePosterSettings: (updated: PosterSettings) => void;
+  onOpenAIBackground?: (templateId?: string) => void;
 }
 
 const TEMPLATE_THUMBNAIL_IMAGES: Record<string, string> = {
+  'ai-full-frame': 'https://www.photobookvietnam.net/app/images/background1.jpg',
   'classic-10': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-1.jpg',
   'hero-mosaic-13': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-2.jpg',
   'editorial-5': 'https://www.photobookvietnam.net/images/thiet-ke-anh-cong-mien-phi-3.jpg',
@@ -168,8 +175,10 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
   onChangeTextConfig,
   posterSettings,
   onChangePosterSettings,
+  onOpenAIBackground,
 }) => {
-  const [activeTab, setActiveTab] = useState<'text' | 'style'>('text');
+  const { activeTemplates } = useBackgroundTemplates();
+  const [activeTab, setActiveTab] = useState<'text' | 'style' | 'ai-bg'>('text');
   const [isPickerModalOpen, setIsPickerModalOpen] = useState(false);
 
   const updateText = (key: keyof TextConfig, value: any) => {
@@ -266,29 +275,44 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
       />
 
       {/* Sidebar Navigation Tabs */}
-      <div className="grid grid-cols-2 border-b border-stone-200 bg-stone-50/80 p-1">
+      <div className="grid grid-cols-3 border-b border-stone-200 bg-stone-50/80 p-1 gap-1">
         <button
           onClick={() => setActiveTab('text')}
-          className={`flex flex-col items-center justify-center py-2.5 px-1 text-[11px] font-semibold rounded-xl transition ${
+          className={`flex flex-col items-center justify-center py-2 px-1 text-[11px] font-semibold rounded-xl transition cursor-pointer ${
             activeTab === 'text'
               ? 'bg-white text-sky-600 shadow-xs'
               : 'text-stone-500 hover:text-stone-800'
           }`}
         >
-          <Type className="w-4 h-4 mb-1" />
-          Tùy Chỉnh Chữ
+          <Type className="w-4 h-4 mb-0.5" />
+          <span>Tùy Chữ</span>
         </button>
 
         <button
           onClick={() => setActiveTab('style')}
-          className={`flex flex-col items-center justify-center py-2.5 px-1 text-[11px] font-semibold rounded-xl transition ${
+          className={`flex flex-col items-center justify-center py-2 px-1 text-[11px] font-semibold rounded-xl transition cursor-pointer ${
             activeTab === 'style'
               ? 'bg-white text-sky-600 shadow-xs'
               : 'text-stone-500 hover:text-stone-800'
           }`}
         >
-          <Palette className="w-4 h-4 mb-1" />
-          Khung & Nền
+          <Palette className="w-4 h-4 mb-0.5" />
+          <span>Khung & Nền</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ai-bg')}
+          className={`flex flex-col items-center justify-center py-2 px-1 text-[11px] font-semibold rounded-xl transition relative cursor-pointer ${
+            activeTab === 'ai-bg'
+              ? 'bg-white text-indigo-600 shadow-xs'
+              : 'text-stone-500 hover:text-stone-800'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 mb-0.5 text-indigo-500 animate-pulse" />
+          <span className="flex items-center gap-1">
+            Thay Nền AI
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+          </span>
         </button>
       </div>
 
@@ -303,6 +327,77 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                 Nội Dung & Phông Chữ
               </h3>
               <span className="text-[11px] text-stone-400">Xem trực tiếp trên bảng</span>
+            </div>
+
+            {/* AI Full Frame Banner & Callout if in ai-full-frame mode */}
+            {templateId === 'ai-full-frame' && (
+              <div className="bg-gradient-to-br from-purple-50 via-indigo-50 to-sky-50 border border-purple-200/80 rounded-2xl p-3 shadow-xs">
+                <div className="flex items-start justify-between gap-2 mb-1.5">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900">
+                    <Sparkles className="w-4 h-4 text-purple-600 animate-pulse shrink-0" />
+                    <span>Mẫu Ảnh Cổng AI Full Khung (60×90)</span>
+                  </div>
+                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 whitespace-nowrap">
+                    1 Ảnh Đơn
+                  </span>
+                </div>
+                <p className="text-[11px] text-purple-800 leading-relaxed mb-2.5">
+                  Mẫu tràn viền toàn diện. Bạn có thể sử dụng nút AI để đổi phông nền nghệ thuật sang vòm hoa, hoàng hôn và tùy chọn bật/tắt chữ tên dâu rể phía dưới.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onOpenAIBackground && onOpenAIBackground()}
+                  className="w-full py-1.5 px-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
+                >
+                  <Wand2 className="w-3.5 h-3.5" />
+                  <span>Mở Trình Thay Phông AI (25 Mẫu)</span>
+                </button>
+              </div>
+            )}
+
+            {/* Toggle Show/Hide Text Switch */}
+            <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200/80 flex items-center justify-between shadow-2xs">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors ${
+                    textConfig.showText !== false
+                      ? 'bg-sky-100 text-sky-600'
+                      : 'bg-stone-200 text-stone-500'
+                  }`}
+                >
+                  {textConfig.showText !== false ? (
+                    <Eye className="w-4 h-4" />
+                  ) : (
+                    <EyeOff className="w-4 h-4" />
+                  )}
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-stone-800 block">
+                    Hiển Thị Chữ Trên Khung
+                  </span>
+                  <span className="text-[11px] text-stone-500">
+                    {textConfig.showText !== false
+                      ? 'Đang bật (hiển thị tên dâu rể & ngày cưới)'
+                      : 'Đang tắt (ảnh sạch 100% không chữ)'}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => updateText('showText', !(textConfig.showText !== false))}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  textConfig.showText !== false ? 'bg-sky-500' : 'bg-stone-300'
+                }`}
+                role="switch"
+                aria-checked={textConfig.showText !== false}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                    textConfig.showText !== false ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
             </div>
 
             {/* Quick Text Color Presets */}
@@ -689,6 +784,59 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
                     }`}
                   >
                     {style.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: AI BACKGROUNDS */}
+        {activeTab === 'ai-bg' && (
+          <div className="space-y-4 animate-fade-in">
+            {/* Quick Templates Browser */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h5 className="font-bold text-xs text-stone-800 uppercase tracking-wider">
+                  Kho Mẫu Phông Nền ({activeTemplates.length} Mẫu)
+                </h5>
+                <span className="text-[10px] text-stone-400">Bấm để áp dụng</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2.5">
+                {activeTemplates.map((tmpl) => (
+                  <button
+                    key={tmpl.id}
+                    type="button"
+                    onClick={() => onOpenAIBackground?.(tmpl.id)}
+                    className="group text-left rounded-xl overflow-hidden border border-stone-200 hover:border-sky-500 bg-white hover:shadow-xs transition flex flex-col cursor-pointer"
+                  >
+                    <div className="w-full aspect-[3/4] bg-stone-100 overflow-hidden relative">
+                      <img
+                        src={tmpl.thumbnailUrl}
+                        alt={tmpl.name_vn}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src =
+                            'https://images.unsplash.com/photo-1519741497674-611481863552?w=500&auto=format&fit=crop&q=80';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2">
+                        <span className="text-[10px] text-white font-bold flex items-center gap-1">
+                          <Wand2 className="w-3 h-3 text-sky-400" />
+                          Chọn mẫu này
+                        </span>
+                      </div>
+                    </div>
+                    <div className="p-2">
+                      <p className="font-semibold text-xs text-stone-800 truncate group-hover:text-sky-600 transition">
+                        {tmpl.name_vn}
+                      </p>
+                      <p className="text-[10px] text-stone-400 truncate">
+                        {tmpl.name}
+                      </p>
+                    </div>
                   </button>
                 ))}
               </div>

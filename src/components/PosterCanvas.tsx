@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FrameSlot, PosterSettings, TemplateId, TextConfig } from '../types';
 import { PHOTO_FILTERS } from '../data/constants';
-import { Upload, Sliders, Plus } from 'lucide-react';
+import { Upload, Sliders, Plus, Sparkles } from 'lucide-react';
 
 interface PosterCanvasProps {
   templateId: TemplateId;
@@ -13,6 +13,7 @@ interface PosterCanvasProps {
   onSlotImageChange: (index: number, imageUri: string) => void;
   onUpdateSlot?: (updated: FrameSlot) => void;
   onOpenCropModal: (slot: FrameSlot, index: number) => void;
+  onOpenAIBackground?: (slotIndex: number) => void;
   posterRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -26,6 +27,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
   onSlotImageChange,
   onUpdateSlot,
   onOpenCropModal,
+  onOpenAIBackground,
   posterRef,
 }) => {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -342,6 +344,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
   };
 
   const renderTypographyBlock = () => {
+    if (textConfig.showText === false) return null;
     return (
       <div className="flex flex-col items-center justify-center text-center p-1 sm:p-2 h-full select-none">
         {/* Tagline */}
@@ -467,6 +470,125 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
             className="absolute inset-3 border border-amber-500/40 pointer-events-none rounded-xs"
             style={{ margin: `${posterSettings.outerMargin - 8}px` }}
           />
+        )}
+
+        {/* Layout Template: AI Full Frame (1 ảnh đơn tràn toàn khung hình 60x90 cm) */}
+        {templateId === 'ai-full-frame' && (
+          <div className="w-full h-full relative overflow-hidden flex flex-col">
+            {/* Slot 0: 100% full-frame photo */}
+            <div className="w-full h-full relative">
+              {renderSlot(0, 'w-full h-full absolute inset-0')}
+
+              {/* Quick AI Background Action Floating Badge */}
+              <div className="absolute top-3 left-3 z-20 flex items-center gap-2">
+                <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onOpenAIBackground) onOpenAIBackground(0);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/85 hover:bg-stone-950 text-white text-xs font-semibold rounded-full shadow-lg backdrop-blur-md transition transform hover:scale-105 cursor-pointer border border-white/20 active:scale-95"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                  <span>Ghép Phông AI</span>
+                </button>
+              </div>
+
+              {/* Elegant Text Overlay (Conditionally rendered when showText !== false) */}
+              {textConfig.showText !== false && (
+                <div className="absolute inset-x-0 bottom-0 z-10 pt-20 pb-7 px-6 bg-gradient-to-t from-stone-950/80 via-stone-950/35 to-transparent flex flex-col items-center text-center pointer-events-none select-none">
+                  {textConfig.tagline && (
+                    <p
+                      style={{
+                        fontFamily: textConfig.taglineFont,
+                        fontSize: `${Math.round(textConfig.taglineFontSize * 1.05)}px`,
+                        color: '#ffffff',
+                        letterSpacing: `${textConfig.taglineLetterSpacing + 1}px`,
+                        textTransform: textConfig.textUppercase ? 'uppercase' : 'none',
+                        textShadow: '0 2px 8px rgba(0,0,0,0.7)',
+                      }}
+                      className="font-semibold mb-2 leading-tight tracking-widest"
+                    >
+                      {textConfig.tagline}
+                    </p>
+                  )}
+
+                  {/* Couple Names */}
+                  <div className="flex items-center justify-center gap-2.5 my-1">
+                    <span
+                      style={{
+                        fontFamily: textConfig.namesFont,
+                        fontSize: `${Math.round(textConfig.namesFontSize * 1.25)}px`,
+                        color: '#ffffff',
+                        textTransform: textConfig.textUppercase ? 'uppercase' : 'none',
+                        textShadow: '0 2px 10px rgba(0,0,0,0.8)',
+                      }}
+                      className="font-bold tracking-wider leading-snug drop-shadow-md"
+                    >
+                      {textConfig.groomName}
+                    </span>
+
+                    <span
+                      style={{
+                        fontFamily: textConfig.connectorFont,
+                        fontSize: `${Math.round(textConfig.namesFontSize * 1.1)}px`,
+                        color: '#fef08a',
+                        textShadow: '0 2px 8px rgba(0,0,0,0.7)',
+                      }}
+                      className="font-normal italic"
+                    >
+                      {textConfig.connector}
+                    </span>
+
+                    <span
+                      style={{
+                        fontFamily: textConfig.namesFont,
+                        fontSize: `${Math.round(textConfig.namesFontSize * 1.25)}px`,
+                        color: '#ffffff',
+                        textTransform: textConfig.textUppercase ? 'uppercase' : 'none',
+                        textShadow: '0 2px 10px rgba(0,0,0,0.8)',
+                      }}
+                      className="font-bold tracking-wider leading-snug drop-shadow-md"
+                    >
+                      {textConfig.brideName}
+                    </span>
+                  </div>
+
+                  {/* Wedding Date */}
+                  {textConfig.dateText && (
+                    <div
+                      style={{
+                        fontFamily: textConfig.dateFont,
+                        fontSize: `${Math.round(textConfig.dateFontSize * 0.5)}px`,
+                        color: '#f5f5f4',
+                        letterSpacing: `${textConfig.dateLetterSpacing}px`,
+                        textShadow: '0 2px 8px rgba(0,0,0,0.7)',
+                      }}
+                      className="font-bold mt-1 leading-snug whitespace-pre-line tracking-wider"
+                    >
+                      {textConfig.dateText.replace('\n', '  •  ')}
+                    </div>
+                  )}
+
+                  {/* Subtext */}
+                  {textConfig.subtext && (
+                    <p
+                      style={{
+                        fontFamily: textConfig.subtextFont,
+                        fontSize: `${textConfig.subtextFontSize}px`,
+                        color: '#e7e5e4',
+                        textShadow: '0 1px 4px rgba(0,0,0,0.7)',
+                      }}
+                      className="mt-1.5 tracking-wide font-light max-w-sm"
+                    >
+                      {textConfig.subtext}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {/* Layout Template 1: Classic 10-Grid (Exact layout from user's sample) */}

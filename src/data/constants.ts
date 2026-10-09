@@ -25,6 +25,15 @@ export const SAMPLE_WEDDING_PHOTOS = [
 
 export const TEMPLATES: TemplateDefinition[] = [
   {
+    id: 'ai-full-frame',
+    name: 'Mẫu Cổng AI Full Khung',
+    description: 'Bố cục 1 ảnh đơn tràn 100% khung hình chuẩn 60×90 cm, hỗ trợ thay phông nền AI nghệ thuật và tùy chọn bật/tắt chữ',
+    slotCount: 1,
+    aspectRatio: '2:3',
+    category: 'anh-cong-ai',
+    previewThumbnail: 'https://www.photobookvietnam.net/app/images/background1.jpg'
+  },
+  {
     id: 'classic-10',
     name: 'Mẫu số 1',
     description: '10 khung ảnh bố cục bao quanh cụm chữ trung tâm nghệ thuật',
@@ -233,7 +242,8 @@ export const DEFAULT_TEXT_CONFIG: TextConfig = {
   subtextColor: '#57534e',
 
   textAlign: 'center',
-  textUppercase: true
+  textUppercase: true,
+  showText: true
 };
 
 export const DEFAULT_POSTER_SETTINGS: PosterSettings = {
