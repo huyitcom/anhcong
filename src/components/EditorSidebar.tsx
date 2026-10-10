@@ -329,31 +329,6 @@ export const EditorSidebar: React.FC<EditorSidebarProps> = ({
               <span className="text-[11px] text-stone-400">Xem trực tiếp trên bảng</span>
             </div>
 
-            {/* AI Full Frame Banner & Callout if in ai-full-frame mode */}
-            {templateId === 'ai-full-frame' && (
-              <div className="bg-gradient-to-br from-purple-50 via-indigo-50 to-sky-50 border border-purple-200/80 rounded-2xl p-3 shadow-xs">
-                <div className="flex items-start justify-between gap-2 mb-1.5">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-purple-900">
-                    <Sparkles className="w-4 h-4 text-purple-600 animate-pulse shrink-0" />
-                    <span>Mẫu Ảnh Cổng AI Full Khung (60×90)</span>
-                  </div>
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 whitespace-nowrap">
-                    1 Ảnh Đơn
-                  </span>
-                </div>
-                <p className="text-[11px] text-purple-800 leading-relaxed mb-2.5">
-                  Mẫu tràn viền toàn diện. Bạn có thể sử dụng nút AI để đổi phông nền nghệ thuật sang vòm hoa, hoàng hôn và tùy chọn bật/tắt chữ tên dâu rể phía dưới.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => onOpenAIBackground && onOpenAIBackground()}
-                  className="w-full py-1.5 px-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl text-xs font-semibold shadow-xs flex items-center justify-center gap-1.5 transition cursor-pointer"
-                >
-                  <Wand2 className="w-3.5 h-3.5" />
-                  <span>Mở Trình Thay Phông AI (25 Mẫu)</span>
-                </button>
-              </div>
-            )}
 
             {/* Toggle Show/Hide Text Switch */}
             <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200/80 flex items-center justify-between shadow-2xs">

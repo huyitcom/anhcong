@@ -143,7 +143,6 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
   const [isSeeding, setIsSeeding] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
-  const [copiedDescId, setCopiedDescId] = useState<string | null>(null);
   const [viewPromptTemplate, setViewPromptTemplate] = useState<ExtendedBackgroundTemplate | null>(null);
 
   const showToast = (msg: string) => {
@@ -266,15 +265,6 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
     navigator.clipboard.writeText(tmpl.prompt);
     setCopiedPromptId(tmpl.id);
     setTimeout(() => setCopiedPromptId(null), 2500);
-  };
-
-  // Copy extracted background description
-  const handleCopyBackgroundDesc = (tmpl: ExtendedBackgroundTemplate) => {
-    const desc = extractBackgroundDescription(tmpl.prompt) || tmpl.prompt;
-    navigator.clipboard.writeText(desc);
-    setCopiedDescId(tmpl.id);
-    showToast(`📋 Đã copy mô tả bối cảnh mẫu "${tmpl.name_vn}"!`);
-    setTimeout(() => setCopiedDescId(null), 2500);
   };
 
   // Open Global System Master Prompt Modal
@@ -457,7 +447,6 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
             const isActive = tmpl.isActive !== false;
             const catName =
               BACKGROUND_CATEGORIES.find((c) => c.id === tmpl.category)?.name || tmpl.category || 'Mặc định';
-            const extractedDesc = extractBackgroundDescription(tmpl.prompt) || tmpl.prompt;
 
             return (
               <div
@@ -468,12 +457,12 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
                     : 'bg-slate-900/60 border-slate-800 opacity-65'
                 }`}
               >
-                {/* Thumbnail Preview Image */}
+                  {/* Thumbnail Preview Image */}
                 <div className="relative aspect-[3/4] bg-slate-950 overflow-hidden">
                   <img
                     src={tmpl.thumbnailUrl}
                     alt={tmpl.name_vn}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover"
                     loading="lazy"
                     onError={(e) => {
                       (e.currentTarget as HTMLImageElement).src =
@@ -497,76 +486,6 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
                       {isActive ? 'Đang hiện' : 'Đã ẩn'}
                     </span>
                   </div>
-
-                  {/* Hover Quick Prompt & Background Description Preview Overlay */}
-                  <div className="absolute inset-0 bg-slate-950/94 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-between text-xs">
-                    <div className="space-y-1.5 overflow-hidden">
-                      <div className="text-[10px] font-bold uppercase text-amber-300 flex items-center justify-between gap-1">
-                        <span className="flex items-center gap-1">
-                          <Wand2 className="w-3 h-3 text-amber-400" />
-                          Mô Tả Bối Cảnh Cũ:
-                        </span>
-                        <span className="text-[9px] text-slate-400 lowercase font-normal">đã trích xuất</span>
-                      </div>
-                      <p className="text-[11px] font-mono text-amber-200/90 line-clamp-4 leading-relaxed font-normal whitespace-pre-wrap">
-                        "{extractedDesc}"
-                      </p>
-
-                      <div className="pt-1 text-[10px] text-slate-400 line-clamp-2 font-mono">
-                        <span className="text-purple-300">Prompt:</span> {tmpl.prompt.slice(0, 90)}...
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t border-slate-800 flex flex-col gap-1.5">
-                      <div className="flex items-center justify-between gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleCopyBackgroundDesc(tmpl)}
-                          className="flex-1 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] rounded-lg font-bold flex items-center justify-center gap-1 border border-amber-500/30 transition cursor-pointer"
-                        >
-                          {copiedDescId === tmpl.id ? (
-                            <>
-                              <Check className="w-3 h-3 text-emerald-300" />
-                              <span>Đã copy mô tả</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3 h-3" />
-                              <span>Copy Mô Tả Bối Cảnh</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setViewPromptTemplate(tmpl)}
-                          className="px-2 py-1 bg-slate-800 hover:bg-slate-750 text-slate-200 text-[10px] rounded-lg font-medium flex items-center gap-1"
-                        >
-                          <FileText className="w-3 h-3" />
-                          Đọc đầy đủ
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyPrompt(tmpl)}
-                          className="px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white text-[10px] rounded-lg font-bold flex items-center gap-1"
-                        >
-                          {copiedPromptId === tmpl.id ? (
-                            <>
-                              <Check className="w-3 h-3 text-emerald-300" />
-                              <span>Đã copy</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3 h-3" />
-                              <span>Copy Toàn Bộ Prompt</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
                 </div>
 
                 {/* Card Information */}
@@ -581,13 +500,6 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
                           Tự tạo
                         </span>
                       )}
-                    </div>
-                    <p className="text-[11px] text-slate-400 truncate mt-0.5" title={tmpl.name}>
-                      {tmpl.name}
-                    </p>
-                    <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono mt-1">
-                      <span>ID: {tmpl.id}</span>
-                      <span className="text-purple-400 font-semibold">{tmpl.prompt?.length || 0} ký tự</span>
                     </div>
                   </div>
 
@@ -618,15 +530,14 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
                         <Copy className="w-3.5 h-3.5" />
                       </button>
 
-                      {/* Edit Button */}
+                      {/* Edit Button - Icon only, no text */}
                       <button
                         type="button"
                         onClick={() => handleEdit(tmpl)}
-                        title="Chỉnh sửa tự do Master Prompt và thông tin mẫu"
-                        className="px-2.5 py-1.5 bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
+                        title="Chỉnh sửa Master Prompt & thông tin mẫu"
+                        className="p-1.5 bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 rounded-lg text-xs transition cursor-pointer"
                       >
-                        <Edit className="w-3 h-3" />
-                        <span>Sửa Prompt</span>
+                        <Edit className="w-3.5 h-3.5" />
                       </button>
 
                       {/* Delete Button */}
