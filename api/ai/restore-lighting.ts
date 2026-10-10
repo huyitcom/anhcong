@@ -2,7 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import fs from 'fs';
 
-// Thư mục lưu tạm trên Vercel (/tmp)
+// Ensure uploads folder exists (use /tmp on Vercel/serverless environments)
 const UPLOADS_DIR = (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
   ? path.join('/tmp', 'uploads')
   : path.join(process.cwd(), 'uploads');
@@ -15,7 +15,7 @@ try {
   console.warn('[Storage] Could not create uploads directory:', e);
 }
 
-// Nhận diện tỉ lệ ảnh
+// Detect natural dimensions and closest Gemini aspect ratio from image buffer
 function detectImageAspectRatioFromBuffer(buffer: Buffer): '1:1' | '3:4' | '4:3' | '9:16' | '16:9' {
   let width = 0;
   let height = 0;
@@ -71,12 +71,60 @@ Professional Wedding Photo Editor and Photo Restoration Specialist.
 
 TASK:
 Restore and professionally correct the exposure and lighting of the uploaded wedding photograph.
+
 This is an EXPOSURE RESTORATION and PHOTO ENHANCEMENT task ONLY.
-Do NOT replace the background. Do NOT change composition. Do NOT regenerate subjects.
-Preserve all facial features, likeness, clothes, texture, and wedding dress details.
-Lift shadows naturally, recover details from dark suit and underexposed faces.`;
+
+Do NOT replace the background.
+Do NOT change the composition.
+Do NOT regenerate the subjects.
+Do NOT reinterpret the photograph.
+
+The goal is to recover the photographic information hidden in the dark areas and make the original photograph look naturally well-exposed, clean and professionally photographed.
+
+==================================================
+1. PRESERVE THE ORIGINAL PHOTOGRAPH
+==================================================
+
+Treat the uploaded image as the original source photograph.
+
+Preserve exactly:
+- all people, identity, facial features, facial expression, eyes, nose, mouth
+- hairstyle, hairline, skin texture, skin tone, body proportions, body shape, pose, hands
+- wedding dress, suit, bouquet, veil, jewelry, clothing details
+- original framing, original composition, original camera perspective, original background
+
+Do not redraw or reconstruct the people. Do not change their appearance.
+
+==================================================
+2. RECOVER THE UNDEREXPOSED IMAGE
+==================================================
+
+Carefully recover the dark areas while maintaining realistic photographic contrast.
+Increase: overall exposure, shadow detail, midtone brightness, facial visibility, clothing detail, background detail.
+Lift the shadows gradually and naturally. Reveal natural detail in the groom's black suit while keeping it genuinely black.
+Brighten the bride's face and dress naturally without overexposing the white fabric. Preserve highlight detail in the wedding dress.
+Do NOT simply increase brightness globally. Use intelligent tonal recovery similar to professional RAW photo development.
+
+==================================================
+3. FACE AND SKIN
+==================================================
+
+Recover facial visibility naturally. Make the faces clearly visible while preserving their exact original appearance.
+Do NOT change facial structure or expression, do NOT enlarge eyes, reshape nose, or excessively smooth the face.
+Preserve realistic skin texture. The faces should look like the same people photographed with better exposure.
+
+==================================================
+4. WEDDING DRESS & SUIT
+==================================================
+
+Maintain natural white color, fabric texture, folds, and highlights in the wedding dress without clipping.
+Maintain the groom's suit as deep black formal suit with subtle natural folds and texture recovered from shadows.
+
+OUTPUT REQUIREMENT:
+Return ONLY the professionally restored photograph. Clean, natural, and wedding print ready.`;
 
 export default async function handler(req: any, res: any) {
+  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-gemini-api-key');
@@ -86,16 +134,23 @@ export default async function handler(req: any, res: any) {
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method Not Allowed' });
+    return res.status(405).json({ success: false, error: 'Phương thức không được hỗ trợ (Method Not Allowed).' });
   }
 
   try {
     let body = req.body;
     if (typeof body === 'string') {
-      try { body = JSON.parse(body); } catch (_) {}
+      try {
+        body = JSON.parse(body);
+      } catch (_) {}
     }
 
-    const { image, prompt, aspectRatio, imageSize = '1K' } = body || {};
+    const {
+      image,
+      prompt,
+      aspectRatio,
+      imageSize = '1K',
+    } = body || {};
 
     if (!image) {
       return res.status(400).json({ success: false, error: 'Thiếu dữ liệu hình ảnh (image).' });
@@ -144,6 +199,8 @@ export default async function handler(req: any, res: any) {
       validImageSize = imageSize;
     }
 
+    console.log(`[Vercel Serverless Lighting Restoration] size: ${validImageSize}, aspect: ${validAspectRatio}`);
+
     const apiKey = (
       req.headers['x-gemini-api-key'] ||
       body?.apiKey ||
@@ -162,16 +219,26 @@ export default async function handler(req: any, res: any) {
     }
 
     const ai = new GoogleGenAI({ apiKey });
+
     const restorationPrompt = (prompt && typeof prompt === 'string' && prompt.trim().length > 0)
       ? prompt.trim()
       : LIGHTING_RESTORATION_PROMPT;
+
+    console.log(`[AI Lighting Restoration] Calling Gemini with prompt length ${restorationPrompt.length}...`);
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.1-flash-image',
       contents: {
         parts: [
-          { inlineData: { data: base64Data, mimeType: mimeType } },
-          { text: restorationPrompt },
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: mimeType,
+            },
+          },
+          {
+            text: restorationPrompt,
+          },
         ],
       },
       config: {
@@ -196,6 +263,7 @@ export default async function handler(req: any, res: any) {
     }
 
     if (!generatedImageUrl) {
+      console.warn('[AI Lighting Restoration] Model returned no image part. Text:', generatedText);
       return res.status(500).json({
         success: false,
         error: generatedText || 'AI không thể tạo được hình ảnh cứu sáng. Vui lòng thử lại.',
@@ -208,12 +276,14 @@ export default async function handler(req: any, res: any) {
       const imgBuffer = Buffer.from(generatedImageUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
       fs.writeFileSync(aiFilePath, imgBuffer);
     } catch (writeErr) {
-      console.warn('[AI Storage] Could not write to disk:', writeErr);
+      console.warn('[AI Lighting Storage] Could not persist generated file to disk:', writeErr);
     }
 
     const protocol = req.headers['x-forwarded-proto'] || 'https';
     const host = req.headers['x-forwarded-host'] || req.headers['host'] || 'photobookvietnam.net';
     const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
+
+    console.log(`[AI Lighting Restoration] Success! Returned restored image.`);
 
     return res.status(200).json({
       success: true,
@@ -224,10 +294,24 @@ export default async function handler(req: any, res: any) {
     });
   } catch (err: any) {
     console.error('[AI Lighting Restoration Error]', err);
+    const errMsg = err?.message || String(err);
+    const isQuotaError = errMsg.includes('RESOURCE_EXHAUSTED') || errMsg.includes('quota') || errMsg.includes('429');
+    const isSuspended = errMsg.includes('CONSUMER_SUSPENDED') || errMsg.includes('suspended');
+    const isKeyInvalid = errMsg.includes('API key not valid') || (errMsg.includes('INVALID_ARGUMENT') && errMsg.includes('key'));
+
+    let userFriendlyMessage = `Lỗi xử lý cứu sáng AI: ${errMsg}`;
+    if (isKeyInvalid) {
+      userFriendlyMessage = 'Khóa GEMINI_API_KEY không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại API Key trên Google AI Studio.';
+    } else if (isSuspended) {
+      userFriendlyMessage = 'Khóa API Google Cloud của dự án đang bị tạm dừng (CONSUMER_SUSPENDED). Vui lòng kiểm tra trạng thái thanh toán trên Google Cloud Console.';
+    } else if (isQuotaError) {
+      userFriendlyMessage = 'Hệ thống đã đạt giới hạn yêu cầu AI (429 Quota limit). Vui lòng đợi 1 phút và thử lại.';
+    }
+
     return res.status(500).json({
       success: false,
-      error: err?.message || String(err),
-      message: `Lỗi xử lý cứu sáng AI: ${err?.message || err}`,
+      error: errMsg,
+      message: userFriendlyMessage,
     });
   }
 }

@@ -87,6 +87,16 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["id", "name", "name_vn", "thumbnailUrl", "prompt"]
+    },
+    "systemSetting": {
+      "title": "System Setting",
+      "description": "Global application configuration and default prompt settings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "value": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      }
     }
   },
   "firestore": {
@@ -109,6 +119,10 @@
     "/aiBackgroundTemplates/{templateId}": {
       "schema": "aiBackgroundTemplate",
       "description": "AI background templates for replacing backgrounds"
+    },
+    "/systemSettings/{settingId}": {
+      "schema": "systemSetting",
+      "description": "Global system configurations including default master prompt"
     }
   }
 }

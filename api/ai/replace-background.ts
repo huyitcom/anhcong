@@ -2,7 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import fs from 'fs';
 
-// Thư mục lưu tạm trên Vercel (/tmp)
+// Ensure uploads folder exists (use /tmp on Vercel/serverless environments)
 const UPLOADS_DIR = (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
   ? path.join('/tmp', 'uploads')
   : path.join(process.cwd(), 'uploads');
@@ -15,7 +15,7 @@ try {
   console.warn('[Storage] Could not create uploads directory:', e);
 }
 
-// Nhận diện tỉ lệ ảnh
+// Detect natural dimensions and closest Gemini aspect ratio from image buffer
 function detectImageAspectRatioFromBuffer(buffer: Buffer): '1:1' | '3:4' | '4:3' | '9:16' | '16:9' {
   let width = 0;
   let height = 0;
@@ -67,6 +67,7 @@ function detectImageAspectRatioFromBuffer(buffer: Buffer): '1:1' | '3:4' | '4:3'
 }
 
 export default async function handler(req: any, res: any) {
+  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-gemini-api-key');
@@ -76,13 +77,15 @@ export default async function handler(req: any, res: any) {
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Method Not Allowed' });
+    return res.status(405).json({ success: false, error: 'Phương thức không được hỗ trợ (Method Not Allowed).' });
   }
 
   try {
     let body = req.body;
     if (typeof body === 'string') {
-      try { body = JSON.parse(body); } catch (_) {}
+      try {
+        body = JSON.parse(body);
+      } catch (_) {}
     }
 
     const {
@@ -144,6 +147,8 @@ export default async function handler(req: any, res: any) {
       validImageSize = imageSize;
     }
 
+    console.log(`[Vercel Serverless Replace Background] size: ${validImageSize}, aspect: ${validAspectRatio}`);
+
     const chosenTheme = templateName || themeTitle || 'Phong Cách Đám Cưới Sang Trọng';
     const promptDetails = prompt || customPrompt || themePrompt || 'A luxurious, elegant high-end wedding venue with soft cinematic warm lighting, romantic floral decorations, bokeh background, maintaining photographic realism.';
 
@@ -166,19 +171,29 @@ export default async function handler(req: any, res: any) {
 
     const ai = new GoogleGenAI({ apiKey });
 
-    const finalPrompt = `Professional Wedding Photo Retouching & Background Replacement:
+    let finalPrompt = (prompt || customPrompt || themePrompt || '').trim();
+    if (!finalPrompt || finalPrompt.length < 20) {
+      finalPrompt = `Professional Wedding Photo Retouching & Background Replacement:
 Keep the bride and groom exactly as they are in the original photo: preserve their faces, identities, expressions, hairstyles, poses, wedding outfits, flowers, and natural skin tones completely intact and razor sharp.${preserveFraming !== false ? ' Strictly preserve the original distance, scale, framing, and exact facial features of the couple.' : ''}
 Seamlessly replace ONLY the background with a stunning new environment:
 Theme: "${chosenTheme}".
 Details: "${promptDetails}".
 Ensure natural lighting integration, matching color temperature, realistic shadows on the subjects, depth of field, and perfect edge blending around hair and veil. The final result must look like a high-end luxury editorial wedding photograph.`;
+    }
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.1-flash-image',
       contents: {
         parts: [
-          { inlineData: { data: base64Data, mimeType: mimeType } },
-          { text: finalPrompt },
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: mimeType,
+            },
+          },
+          {
+            text: finalPrompt,
+          },
         ],
       },
       config: {
@@ -215,7 +230,7 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       const imgBuffer = Buffer.from(generatedImageUrl.replace(/^data:image\/\w+;base64,/, ''), 'base64');
       fs.writeFileSync(aiFilePath, imgBuffer);
     } catch (writeErr) {
-      console.warn('[AI Storage] Could not write to disk:', writeErr);
+      console.warn('[AI Storage] Could not persist generated file to disk:', writeErr);
     }
 
     const protocol = req.headers['x-forwarded-proto'] || 'https';
@@ -232,10 +247,26 @@ Ensure natural lighting integration, matching color temperature, realistic shado
     });
   } catch (err: any) {
     console.error('[AI Replace Background Error]', err);
+    const errMsg = err?.message || String(err);
+    const isQuotaError = errMsg.includes('RESOURCE_EXHAUSTED') || errMsg.includes('quota') || errMsg.includes('429');
+    const isSuspended = errMsg.includes('CONSUMER_SUSPENDED') || errMsg.includes('suspended');
+    const isKeyInvalid = errMsg.includes('API key not valid') || (errMsg.includes('INVALID_ARGUMENT') && errMsg.includes('key'));
+
+    let userFriendlyMessage = `Lỗi xử lý AI: ${errMsg}`;
+    if (isKeyInvalid) {
+      userFriendlyMessage = 'Khóa GEMINI_API_KEY không hợp lệ hoặc đã hết hạn. Vui lòng kiểm tra lại API Key trên Google AI Studio.';
+    } else if (isSuspended) {
+      userFriendlyMessage = 'Khóa API Google Cloud của dự án đang bị tạm dừng (CONSUMER_SUSPENDED). Vui lòng kiểm tra trạng thái thanh toán trên Google Cloud Console.';
+    } else if (isQuotaError) {
+      userFriendlyMessage = 'Hệ thống đã đạt giới hạn yêu cầu AI (429 Quota limit). Tính năng thay nền AI cần kích hoạt gói tài nguyên Google Cloud (Paid API Key). Vui lòng cấu hình thanh toán để tiếp tục sử dụng không giới hạn.';
+    }
+
     return res.status(500).json({
       success: false,
-      error: err?.message || String(err),
-      message: `Lỗi xử lý ghép phông nền AI: ${err?.message || err}`,
+      error: errMsg,
+      isQuotaError,
+      isSuspended,
+      message: userFriendlyMessage,
     });
   }
 }

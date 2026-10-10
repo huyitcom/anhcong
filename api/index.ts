@@ -834,12 +834,15 @@ export function createExpressApp() {
 
       const ai = new GoogleGenAI({ apiKey });
 
-      const finalPrompt = `Professional Wedding Photo Retouching & Background Replacement:
+      let finalPrompt = (prompt || customPrompt || themePrompt || '').trim();
+      if (!finalPrompt || finalPrompt.length < 20) {
+        finalPrompt = `Professional Wedding Photo Retouching & Background Replacement:
 Keep the bride and groom exactly as they are in the original photo: preserve their faces, identities, expressions, hairstyles, poses, wedding outfits, flowers, and natural skin tones completely intact and razor sharp.
 Seamlessly replace ONLY the background with a stunning new environment:
 Theme: "${chosenTheme}".
 Details: "${promptDetails}".
 Ensure natural lighting integration, matching color temperature, realistic shadows on the subjects, depth of field, and perfect edge blending around hair and veil. The final result must look like a high-end luxury editorial wedding photograph.`;
+      }
 
       const response = await ai.models.generateContent({
         model: 'gemini-3.1-flash-image',

@@ -211,6 +211,38 @@ export function useBackgroundTemplates() {
     }
   };
 
+  // System Master Prompt (stored in systemSettings/masterPrompt)
+  const [systemMasterPrompt, setSystemMasterPrompt] = useState<string>('');
+
+  useEffect(() => {
+    const promptDocRef = doc(db, 'systemSettings', 'masterPrompt');
+    const unsub = onSnapshot(promptDocRef, (snap) => {
+      if (snap.exists() && snap.data()?.value) {
+        setSystemMasterPrompt(snap.data().value);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const saveSystemMasterPrompt = async (promptValue: string) => {
+    try {
+      const promptDocRef = doc(db, 'systemSettings', 'masterPrompt');
+      await setDoc(
+        promptDocRef,
+        {
+          id: 'masterPrompt',
+          value: promptValue,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      return true;
+    } catch (err) {
+      console.error('[Admin] Error saving system master prompt:', err);
+      throw err;
+    }
+  };
+
   return {
     allTemplates: mergedTemplates,
     activeTemplates,
@@ -221,5 +253,7 @@ export function useBackgroundTemplates() {
     toggleTemplateActive,
     deleteTemplate,
     seedDefaultTemplates,
+    systemMasterPrompt,
+    saveSystemMasterPrompt,
   };
 }

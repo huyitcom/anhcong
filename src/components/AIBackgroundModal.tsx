@@ -17,6 +17,7 @@ import {
   CreditCard,
   PlusCircle,
   CheckCircle2,
+  Camera,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { FrameSlot } from '../types';
@@ -24,6 +25,8 @@ import { useAuth } from '../lib/AuthContext';
 import { TopupCreditsModal } from './TopupCreditsModal';
 import { useBackgroundTemplates } from '../lib/backgroundTemplatesService';
 import { parseApiResponse, compressImageForAi } from '../utils/apiHelper';
+
+export type BokehLevel = 'heavy' | 'medium' | 'deep';
 
 interface AIBackgroundModalProps {
   isOpen: boolean;
@@ -97,6 +100,7 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
 
   // Generation & Quality States
   const [selectedResolution, setSelectedResolution] = useState<'1K' | '2K' | '4K'>('2K');
+  const [bokehLevel, setBokehLevel] = useState<BokehLevel>('heavy');
   const [preserveFraming, setPreserveFraming] = useState<boolean>(true);
   const [generatedResolution, setGeneratedResolution] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -259,6 +263,18 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
 
       const clientApiKey = (((import.meta as any).env?.VITE_GEMINI_API_KEY as string) || '').trim();
 
+      let effectivePrompt = selectedTemplate?.prompt || '';
+      if (preserveFraming) {
+        effectivePrompt += '\n\nPreserve framing: Keep original subject distance, scale, framing, and facial features intact.';
+      }
+      if (bokehLevel === 'heavy') {
+        effectivePrompt += '\n\nBokeh / Depth of field: Shallow depth of field (f/1.4 aperture look), creamy smooth background blur while keeping subjects razor sharp.';
+      } else if (bokehLevel === 'medium') {
+        effectivePrompt += '\n\nBokeh / Depth of field: Natural depth of field (f/2.8 aperture look), soft background blur.';
+      } else if (bokehLevel === 'deep') {
+        effectivePrompt += '\n\nBokeh / Depth of field: Deep focus (f/8 aperture look), clear architectural and environmental details.';
+      }
+
       const res = await fetch('/api/ai/replace-background', {
         method: 'POST',
         headers: {
@@ -267,11 +283,13 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
         },
         body: JSON.stringify({
           image: optimizedImage,
-          prompt: selectedTemplate.prompt,
-          templateName: selectedTemplate.name_vn,
+          prompt: effectivePrompt,
+          templateName: selectedTemplate?.name_vn,
+          category: selectedTemplate?.category,
           aspectRatio: chosenAspectRatio,
           imageSize: selectedResolution,
           preserveFraming: preserveFraming,
+          bokehLevel: bokehLevel,
           userId: currentUser?.uid || '',
           userEmail: currentUser?.email || '',
           apiKey: clientApiKey || undefined,
@@ -819,6 +837,48 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
                             }`}
                           >
                             -{resCost} lượt
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Lens Effect & Bokeh Level Option */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-stone-200">
+                  <div className="flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+                    <div>
+                      <span className="text-xs font-bold text-stone-700">Độ xóa phông nền (Bokeh)</span>
+                      <span className="text-[10px] text-stone-500 block">Hiệu ứng ống kính chân dung dâu rể</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-1.5 w-full sm:w-auto">
+                    {[
+                      { id: 'heavy', label: 'Xóa mạnh', aperture: 'f/1.4', badge: 'Khuyên dùng' },
+                      { id: 'medium', label: 'Xóa vừa', aperture: 'f/2.8', badge: 'Tự nhiên' },
+                      { id: 'deep', label: 'Rõ nét', aperture: 'f/8', badge: 'Toàn cảnh' },
+                    ].map((opt) => {
+                      const isSelected = bokehLevel === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setBokehLevel(opt.id as BokehLevel)}
+                          className={`px-2.5 py-1.5 text-xs font-bold rounded-lg border transition cursor-pointer flex flex-col items-center justify-center ${
+                            isSelected
+                              ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                              : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1">
+                            <span className="text-[11px] whitespace-nowrap">{opt.label}</span>
+                            <span className={`text-[9px] px-1 py-0.2 rounded font-mono ${isSelected ? 'bg-sky-700/80 text-sky-100' : 'bg-stone-100 text-stone-500'}`}>
+                              {opt.aperture}
+                            </span>
+                          </div>
+                          <span className={`text-[9px] font-normal ${isSelected ? 'text-sky-100' : 'text-stone-400'}`}>
+                            {opt.badge}
                           </span>
                         </button>
                       );

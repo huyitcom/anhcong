@@ -17,6 +17,8 @@ import {
   Save,
   X,
   FileText,
+  Sliders,
+  RotateCcw,
 } from 'lucide-react';
 import {
   useBackgroundTemplates,
@@ -24,20 +26,8 @@ import {
 } from '../lib/backgroundTemplatesService';
 import { BACKGROUND_CATEGORIES, MASTER_PROMPT_TEMPLATE } from '../data/backgroundTemplates';
 
-// Helper to generate a slug ID from Vietnamese text
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-');
-}
-
 // Intelligent helper to extract the specific background description from any prompt format
-function extractBackgroundDescription(prompt?: string): string {
+export function extractBackgroundDescription(prompt?: string): string {
   if (!prompt) return '';
 
   // 1. Match Section 6: NEW BACKGROUND (in 12-section Master Prompt)
@@ -84,13 +74,34 @@ function extractBackgroundDescription(prompt?: string): string {
     }
   }
 
-  // 4. If the prompt is just raw background description (doesn't contain ROLE: or TASK:)
+  // 4. Match "2. NEW ENVIRONMENT & BACKGROUND:"
+  const matchEnv = prompt.match(/2\.\s*NEW\s*ENVIRONMENT\s*&\s*BACKGROUND:?\s*([\s\S]*?)(?=\n\s*(?:3\.|\n\s*Ensure|$))/i);
+  if (matchEnv && matchEnv[1]) {
+    const extracted = matchEnv[1].trim();
+    if (extracted) return extracted;
+  }
+
+  // 5. If the prompt is just raw background description (doesn't contain ROLE: or TASK:)
   if (!prompt.includes('ROLE:') && !prompt.includes('TASK:') && !prompt.includes('FIRST: ANALYZE')) {
     return prompt.trim();
   }
 
   return '';
 }
+
+// Concise starter prompt template if admin wants a quick suggestion
+const CONCISE_PROMPT_SUGGESTION = `ROLE: Professional High-End Wedding Photo Retouching Specialist.
+TASK: Seamlessly replace ONLY the background with a luxurious, editorial wedding atmosphere.
+
+1. SUBJECT INTEGRITY & FACE PRESERVATION (CRITICAL):
+- Strictly preserve the original face, facial features, expressions, eye contact, and identity of the bride and groom 100% unchanged.
+- Keep their wedding outfits, veil, jewelry, hairstyle, natural skin texture, and realistic skin tones completely razor-sharp and intact.
+- Strictly preserve the original camera angle, subject distance, and photographic framing (do not crop or alter subject scale).
+
+2. NEW ENVIRONMENT & BACKGROUND:
+- An ultra-luxurious, romantic wedding background featuring elegant floral arrangements, soft architectural depth, and refined studio ambience.
+- Perfectly harmonized lighting: color temperature, realistic shadows, depth of field bokeh, and natural edge blending around hair and veil.
+- Final output must look like a high-end luxury editorial wedding photograph printed at master resolution.`;
 
 export const AdminBackgroundTemplatesManager: React.FC = () => {
   const {
@@ -100,6 +111,8 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
     toggleTemplateActive,
     deleteTemplate,
     seedDefaultTemplates,
+    systemMasterPrompt,
+    saveSystemMasterPrompt,
   } = useBackgroundTemplates();
 
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -109,8 +122,7 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
   // Edit / Add Modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [isEditingNew, setIsEditingNew] = useState<boolean>(false);
-  const [useMasterTemplate, setUseMasterTemplate] = useState<boolean>(true);
-  const [bgDescriptionInput, setBgDescriptionInput] = useState<string>('');
+  const [currentBgDesc, setCurrentBgDesc] = useState<string>('');
   const [editingTemplate, setEditingTemplate] = useState<Partial<ExtendedBackgroundTemplate>>({
     id: '',
     name: '',
@@ -121,11 +133,17 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
     isActive: true,
   });
 
+  // Global System Master Prompt Modal state
+  const [isSystemPromptModalOpen, setIsSystemPromptModalOpen] = useState<boolean>(false);
+  const [systemPromptDraft, setSystemPromptDraft] = useState<string>('');
+  const [isSavingSystemPrompt, setIsSavingSystemPrompt] = useState<boolean>(false);
+
   // Action status states
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isSeeding, setIsSeeding] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copiedPromptId, setCopiedPromptId] = useState<string | null>(null);
+  const [copiedDescId, setCopiedDescId] = useState<string | null>(null);
   const [viewPromptTemplate, setViewPromptTemplate] = useState<ExtendedBackgroundTemplate | null>(null);
 
   const showToast = (msg: string) => {
@@ -133,47 +151,16 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Helper to update background description and sync with master template
-  const handleBgDescriptionChange = (desc: string) => {
-    setBgDescriptionInput(desc);
-    if (useMasterTemplate) {
-      const formattedDesc = desc.trim() || '[INSERT BACKGROUND DESCRIPTION HERE]';
-      const newPrompt = MASTER_PROMPT_TEMPLATE.replace(
-        '[INSERT BACKGROUND DESCRIPTION HERE]',
-        formattedDesc
-      );
-      setEditingTemplate((prev) => ({ ...prev, prompt: newPrompt }));
-    }
-  };
-
-  // Toggle use master template option
-  const handleToggleMasterTemplate = (enabled: boolean) => {
-    setUseMasterTemplate(enabled);
-    if (enabled) {
-      let desc = bgDescriptionInput.trim();
-      if (!desc) {
-        desc = extractBackgroundDescription(editingTemplate.prompt);
-        if (desc) setBgDescriptionInput(desc);
-      }
-      const formattedDesc = desc || '[INSERT BACKGROUND DESCRIPTION HERE]';
-      const newPrompt = MASTER_PROMPT_TEMPLATE.replace(
-        '[INSERT BACKGROUND DESCRIPTION HERE]',
-        formattedDesc
-      );
-      setEditingTemplate((prev) => ({ ...prev, prompt: newPrompt }));
-    }
-  };
-
-  // Open creation modal
+  // Open creation modal - 100% freeform, no forced mold
   const handleAddNew = () => {
-    setUseMasterTemplate(true);
-    setBgDescriptionInput('');
+    const starterPrompt = systemMasterPrompt || CONCISE_PROMPT_SUGGESTION;
+    setCurrentBgDesc('');
     setEditingTemplate({
       id: `custom-template-${Date.now().toString().slice(-4)}`,
       name: 'New Custom Background',
       name_vn: 'Mẫu Phông Mới',
       thumbnailUrl: 'https://www.photobookvietnam.net/app/images/background1.jpg',
-      prompt: MASTER_PROMPT_TEMPLATE,
+      prompt: starterPrompt,
       category: 'wedding-arch',
       isActive: true,
     });
@@ -181,47 +168,30 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
     setIsEditModalOpen(true);
   };
 
-  // Open edit modal for an existing template
+  // Open edit modal for an existing template - PRESERVES PROMPT 100% UNTOUCHED
+  // ALSO extracts old background description for copying/reference
   const handleEdit = (tmpl: ExtendedBackgroundTemplate) => {
-    // Extract description from existing template prompt
     const extractedDesc = extractBackgroundDescription(tmpl.prompt);
-    setBgDescriptionInput(extractedDesc);
-    setUseMasterTemplate(true);
-
-    const formattedDesc = extractedDesc || '[INSERT BACKGROUND DESCRIPTION HERE]';
-    const newPrompt = MASTER_PROMPT_TEMPLATE.replace(
-      '[INSERT BACKGROUND DESCRIPTION HERE]',
-      formattedDesc
-    );
-
+    setCurrentBgDesc(extractedDesc);
     setEditingTemplate({
       ...tmpl,
-      prompt: newPrompt,
+      prompt: tmpl.prompt || '',
     });
-
     setIsEditingNew(false);
     setIsEditModalOpen(true);
   };
 
-  // Duplicate / Clone template
+  // Duplicate / Clone template - PRESERVES PROMPT 100% UNTOUCHED
   const handleClone = (tmpl: ExtendedBackgroundTemplate) => {
     const newId = `${tmpl.id}-copy-${Date.now().toString().slice(-4)}`;
     const extractedDesc = extractBackgroundDescription(tmpl.prompt);
-    setBgDescriptionInput(extractedDesc);
-    setUseMasterTemplate(true);
-
-    const formattedDesc = extractedDesc || '[INSERT BACKGROUND DESCRIPTION HERE]';
-    const newPrompt = MASTER_PROMPT_TEMPLATE.replace(
-      '[INSERT BACKGROUND DESCRIPTION HERE]',
-      formattedDesc
-    );
-
+    setCurrentBgDesc(extractedDesc);
     setEditingTemplate({
       ...tmpl,
       id: newId,
       name_vn: `${tmpl.name_vn} (Bản sao)`,
       name: `${tmpl.name} (Copy)`,
-      prompt: newPrompt,
+      prompt: tmpl.prompt || '',
       isActive: true,
     });
     setIsEditingNew(true);
@@ -232,7 +202,7 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
   const handleSaveTemplate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingTemplate.id || !editingTemplate.name_vn || !editingTemplate.thumbnailUrl || !editingTemplate.prompt) {
-      showToast('⚠️ Vui lòng điền đầy đủ Mã ID, Tên tiếng Việt, Link ảnh và Prompt!');
+      showToast('⚠️ Vui lòng điền đầy đủ Mã ID, Tên tiếng Việt, Link ảnh và Master Prompt!');
       return;
     }
 
@@ -247,7 +217,7 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
         category: (editingTemplate.category as any) || 'wedding-arch',
         isActive: editingTemplate.isActive !== false,
       });
-      showToast(`🎉 Đã lưu mẫu "${editingTemplate.name_vn}" thành công!`);
+      showToast(`🎉 Đã lưu Master Prompt & thông tin mẫu "${editingTemplate.name_vn}" thành công!`);
       setIsEditModalOpen(false);
     } catch (err: any) {
       showToast('❌ Lỗi lưu template: ' + err.message);
@@ -292,12 +262,44 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
   };
 
   // Copy prompt to clipboard
-  const handleCopyPrompt = (tmpl: ExtendedBackgroundTemplate) => {
+  const handleCopyPrompt = (tmpl: ExtendedBackgroundTemplate | { id: string; prompt: string }) => {
     navigator.clipboard.writeText(tmpl.prompt);
     setCopiedPromptId(tmpl.id);
     setTimeout(() => setCopiedPromptId(null), 2500);
   };
 
+  // Copy extracted background description
+  const handleCopyBackgroundDesc = (tmpl: ExtendedBackgroundTemplate) => {
+    const desc = extractBackgroundDescription(tmpl.prompt) || tmpl.prompt;
+    navigator.clipboard.writeText(desc);
+    setCopiedDescId(tmpl.id);
+    showToast(`📋 Đã copy mô tả bối cảnh mẫu "${tmpl.name_vn}"!`);
+    setTimeout(() => setCopiedDescId(null), 2500);
+  };
+
+  // Open Global System Master Prompt Modal
+  const handleOpenSystemPromptModal = () => {
+    setSystemPromptDraft(systemMasterPrompt || MASTER_PROMPT_TEMPLATE);
+    setIsSystemPromptModalOpen(true);
+  };
+
+  // Save Global System Master Prompt to Firestore
+  const handleSaveSystemPrompt = async () => {
+    if (!systemPromptDraft.trim()) {
+      showToast('⚠️ Vui lòng không để trống Master Prompt hệ thống!');
+      return;
+    }
+    setIsSavingSystemPrompt(true);
+    try {
+      await saveSystemMasterPrompt(systemPromptDraft.trim());
+      showToast('🎉 Đã cập nhật Master Prompt mặc định toàn hệ thống thành công!');
+      setIsSystemPromptModalOpen(false);
+    } catch (err: any) {
+      showToast('❌ Lỗi lưu cấu hình: ' + err.message);
+    } finally {
+      setIsSavingSystemPrompt(false);
+    }
+  };
 
   // Filter templates
   const filteredTemplates = allTemplates.filter((t) => {
@@ -336,18 +338,28 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
           <div>
             <h3 className="font-bold text-white text-sm flex items-center gap-2">
               <Wand2 className="w-4 h-4 text-purple-400" />
-              <span>Quản Lý Kho Mẫu Phông Nền AI ({allTemplates.length} Mẫu)</span>
+              <span>Quản Lý Mẫu Phông & Master Prompt AI ({allTemplates.length} Mẫu)</span>
               <span className="text-[11px] font-semibold bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">
-                {activeCount} Đang bật • {inactiveCount} Đã tắt
+                {activeCount} Đang bật • {inactiveCount} Đã ẩn
               </span>
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Thêm mới, chỉnh sửa tên, link ảnh thumbnail, cập nhật AI Prompt và phân loại danh mục phông nền cho người dùng.
+              Soạn thảo Master Prompt tự do theo ý, giữ nguyên vẹn phần mô tả bối cảnh cũ để copy và tham khảo bất cứ lúc nào.
             </p>
           </div>
 
           {/* Top Action Buttons */}
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleOpenSystemPromptModal}
+              title="Xem và chỉnh sửa Master Prompt mặc định của toàn hệ thống"
+              className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+            >
+              <Sliders className="w-4 h-4 text-amber-400" />
+              <span>Cấu Hình Master Prompt Hệ Thống</span>
+            </button>
+
             <button
               type="button"
               onClick={handleAddNew}
@@ -361,11 +373,11 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
               type="button"
               onClick={handleSeedDefaults}
               disabled={isSeeding}
-              title="Lưu toàn bộ mẫu mặc định lên Database Firestore"
+              title="Khôi phục & lưu toàn bộ mẫu mặc định lên Database Firestore"
               className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isSeeding ? 'animate-spin text-purple-400' : ''}`} />
-              <span>{isSeeding ? 'Đang đồng bộ...' : 'Đồng Bộ 32+ Mẫu Lên DB'}</span>
+              <span>{isSeeding ? 'Đang đồng bộ...' : 'Đồng Bộ 32 Mẫu Mặc Định'}</span>
             </button>
           </div>
         </div>
@@ -445,6 +457,7 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
             const isActive = tmpl.isActive !== false;
             const catName =
               BACKGROUND_CATEGORIES.find((c) => c.id === tmpl.category)?.name || tmpl.category || 'Mặc định';
+            const extractedDesc = extractBackgroundDescription(tmpl.prompt) || tmpl.prompt;
 
             return (
               <div
@@ -485,44 +498,73 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Hover Quick Background Description Preview Overlay */}
-                  <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-between text-xs">
+                  {/* Hover Quick Prompt & Background Description Preview Overlay */}
+                  <div className="absolute inset-0 bg-slate-950/94 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity p-3 flex flex-col justify-between text-xs">
                     <div className="space-y-1.5 overflow-hidden">
-                      <div className="text-[10px] font-bold uppercase text-amber-300 flex items-center gap-1">
-                        <Wand2 className="w-3 h-3 text-amber-400" />
-                        <span>Mô Tả Bối Cảnh Phông Nền:</span>
+                      <div className="text-[10px] font-bold uppercase text-amber-300 flex items-center justify-between gap-1">
+                        <span className="flex items-center gap-1">
+                          <Wand2 className="w-3 h-3 text-amber-400" />
+                          Mô Tả Bối Cảnh Cũ:
+                        </span>
+                        <span className="text-[9px] text-slate-400 lowercase font-normal">đã trích xuất</span>
                       </div>
-                      <p className="text-[11px] text-slate-200 line-clamp-6 leading-relaxed font-normal">
-                        "{extractBackgroundDescription(tmpl.prompt) || tmpl.prompt}"
+                      <p className="text-[11px] font-mono text-amber-200/90 line-clamp-4 leading-relaxed font-normal whitespace-pre-wrap">
+                        "{extractedDesc}"
                       </p>
+
+                      <div className="pt-1 text-[10px] text-slate-400 line-clamp-2 font-mono">
+                        <span className="text-purple-300">Prompt:</span> {tmpl.prompt.slice(0, 90)}...
+                      </div>
                     </div>
 
-                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setViewPromptTemplate(tmpl)}
-                        className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] rounded-lg font-medium flex items-center gap-1"
-                      >
-                        <FileText className="w-3 h-3" />
-                        Đọc đầy đủ
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleCopyPrompt(tmpl)}
-                        className="px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white text-[10px] rounded-lg font-bold flex items-center gap-1"
-                      >
-                        {copiedPromptId === tmpl.id ? (
-                          <>
-                            <Check className="w-3 h-3 text-emerald-300" />
-                            <span>Đã copy</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3 h-3" />
-                            <span>Copy Prompt</span>
-                          </>
-                        )}
-                      </button>
+                    <div className="pt-2 border-t border-slate-800 flex flex-col gap-1.5">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleCopyBackgroundDesc(tmpl)}
+                          className="flex-1 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] rounded-lg font-bold flex items-center justify-center gap-1 border border-amber-500/30 transition cursor-pointer"
+                        >
+                          {copiedDescId === tmpl.id ? (
+                            <>
+                              <Check className="w-3 h-3 text-emerald-300" />
+                              <span>Đã copy mô tả</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3" />
+                              <span>Copy Mô Tả Bối Cảnh</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setViewPromptTemplate(tmpl)}
+                          className="px-2 py-1 bg-slate-800 hover:bg-slate-750 text-slate-200 text-[10px] rounded-lg font-medium flex items-center gap-1"
+                        >
+                          <FileText className="w-3 h-3" />
+                          Đọc đầy đủ
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyPrompt(tmpl)}
+                          className="px-2 py-1 bg-purple-600 hover:bg-purple-500 text-white text-[10px] rounded-lg font-bold flex items-center gap-1"
+                        >
+                          {copiedPromptId === tmpl.id ? (
+                            <>
+                              <Check className="w-3 h-3 text-emerald-300" />
+                              <span>Đã copy</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3" />
+                              <span>Copy Toàn Bộ Prompt</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -543,9 +585,10 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
                     <p className="text-[11px] text-slate-400 truncate mt-0.5" title={tmpl.name}>
                       {tmpl.name}
                     </p>
-                    <p className="text-[10px] font-mono text-slate-500 truncate mt-0.5">
-                      ID: {tmpl.id}
-                    </p>
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono mt-1">
+                      <span>ID: {tmpl.id}</span>
+                      <span className="text-purple-400 font-semibold">{tmpl.prompt?.length || 0} ký tự</span>
+                    </div>
                   </div>
 
                   {/* Actions Footer */}
@@ -579,11 +622,11 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleEdit(tmpl)}
-                        title="Chỉnh sửa mẫu này"
+                        title="Chỉnh sửa tự do Master Prompt và thông tin mẫu"
                         className="px-2.5 py-1.5 bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/40 rounded-lg text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
                       >
                         <Edit className="w-3 h-3" />
-                        <span>Sửa</span>
+                        <span>Sửa Prompt</span>
                       </button>
 
                       {/* Delete Button */}
@@ -604,68 +647,74 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 1: ADD / EDIT TEMPLATE MODAL */}
+      {/* MODAL 1: EDIT / CREATE TEMPLATE (100% FREE MASTER PROMPT EDITOR + BACKGROUND DESC EXTRACTOR) */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-5 bg-black/80 backdrop-blur-md animate-fadeIn overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-750 text-white rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl max-h-[92vh] flex flex-col my-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto animate-fadeIn">
+          <div className="bg-slate-900 border border-slate-750 rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl my-auto space-y-4">
             {/* Modal Header */}
-            <div className="px-5 py-3.5 border-b border-slate-800 bg-slate-850 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-purple-600 flex items-center justify-center text-white">
-                  <Wand2 className="w-4 h-4" />
-                </div>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-400" />
                 <div>
-                  <h3 className="font-bold text-sm text-white">
-                    {isEditingNew ? 'Thêm Mẫu Phông Nền AI Mới' : `Chỉnh Sửa Mẫu: ${editingTemplate.name_vn}`}
+                  <h3 className="font-bold text-sm sm:text-base text-white">
+                    {isEditingNew ? 'Thêm Mới Mẫu Phông Nền AI' : `Chỉnh Sửa Mẫu: ${editingTemplate.name_vn}`}
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    Cấu hình tên hiển thị, ảnh thumbnail và prompt kỹ thuật cho AI Gemini
+                    Soạn thảo Master Prompt tự do hoàn toàn, giữ nguyên phần mô tả bối cảnh cũ để copy bất cứ lúc nào.
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsEditModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+                className="text-slate-400 hover:text-white p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Modal Form Body */}
-            <form onSubmit={handleSaveTemplate} className="p-5 overflow-y-auto space-y-4 flex-1">
-              {/* Grid 2 Columns for Basic Info */}
+            {/* Modal Form */}
+            <form onSubmit={handleSaveTemplate} className="space-y-4">
+              {/* Top basic info row */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Left col */}
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Tên Tiếng Việt (Hiển thị khách) <span className="text-rose-400">*</span>
+                      Mã Định Danh (ID) <span className="text-rose-400">*</span>
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="Ví dụ: Cổng Hoa Hồng Cung Điện"
+                      placeholder="vd: modern-minimalist-arch"
+                      value={editingTemplate.id || ''}
+                      onChange={(e) => setEditingTemplate((prev) => ({ ...prev, id: e.target.value }))}
+                      disabled={!isEditingNew}
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 font-mono disabled:opacity-50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Tên Tiếng Việt Hiển Thị <span className="text-rose-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="vd: Cổng Hoa Hồng Pastel Tối Giản"
                       value={editingTemplate.name_vn || ''}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setEditingTemplate((prev) => ({
-                          ...prev,
-                          name_vn: val,
-                          id: isEditingNew && !prev.id?.includes('custom') ? slugify(val) : prev.id,
-                        }));
-                      }}
+                      onChange={(e) => setEditingTemplate((prev) => ({ ...prev, name_vn: e.target.value }))}
                       className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
                     />
                   </div>
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Tên Tiếng Anh (Mô tả phụ)
+                      Tên Tiếng Anh (Tùy chọn)
                     </label>
                     <input
                       type="text"
-                      placeholder="Ví dụ: Royal Palace Floral Arch"
+                      placeholder="vd: Minimalist Pastel Floral Arch"
                       value={editingTemplate.name || ''}
                       onChange={(e) => setEditingTemplate((prev) => ({ ...prev, name: e.target.value }))}
                       className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
@@ -674,29 +723,14 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
 
                   <div>
                     <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Mã ID Định Danh (Slug) <span className="text-rose-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="cong-hoa-hong-cung-dien"
-                      value={editingTemplate.id || ''}
-                      disabled={!isEditingNew}
-                      onChange={(e) => setEditingTemplate((prev) => ({ ...prev, id: slugify(e.target.value) }))}
-                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-mono text-purple-300 placeholder-slate-500 focus:outline-none focus:border-purple-500 disabled:opacity-60"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
-                      Danh Mục Phân Loại <span className="text-rose-400">*</span>
+                      Danh Mục Phân Loại
                     </label>
                     <select
                       value={editingTemplate.category || 'wedding-arch'}
                       onChange={(e) => setEditingTemplate((prev) => ({ ...prev, category: e.target.value as any }))}
-                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500 cursor-pointer"
+                      className="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-500"
                     >
-                      <option value="wedding-arch">Cổng hoa & Tiệc cưới</option>
+                      <option value="wedding-arch">Cổng Hoa & Sân Khấu Cưới</option>
                       <option value="indoor-studio">Indoor (Studio trong nhà)</option>
                       <option value="nature-outdoor">Ngoại cảnh & Thiên nhiên</option>
                       <option value="art-luxury">Nghệ thuật & Sang trọng</option>
@@ -766,74 +800,160 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
                 </div>
               </div>
 
-              {/* Master Template Toggle & Background Description Input */}
-              <div className="bg-gradient-to-br from-purple-950/40 via-indigo-950/30 to-slate-900 p-4 rounded-2xl border border-purple-500/30 space-y-3 shadow-inner">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-500/20 pb-3">
-                  <label className="flex items-center gap-2.5 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={useMasterTemplate}
-                      onChange={(e) => handleToggleMasterTemplate(e.target.checked)}
-                      className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-700 bg-slate-800 cursor-pointer"
-                    />
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
-                      Sử dụng cấu trúc Prompt Chuẩn Studio Cao Cấp
-                    </span>
-                  </label>
-
-                  <span className="text-[10px] bg-purple-500/20 text-purple-300 px-2.5 py-1 rounded-full border border-purple-500/40 font-semibold self-start sm:self-auto shrink-0">
-                    {useMasterTemplate ? 'Đang kích hoạt Master Template' : 'Chế độ soạn thảo tự do'}
-                  </span>
-                </div>
-
-                {/* Input for Background Description when Master Template is enabled */}
-                {useMasterTemplate ? (
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
-                      <Wand2 className="w-3.5 h-3.5 text-amber-400" />
-                      <span>Mô Tả Bối Cảnh Phông Nền (Background Description): <span className="text-rose-400">*</span></span>
-                    </label>
-
-                    <textarea
-                      rows={4}
-                      required
-                      value={bgDescriptionInput}
-                      onChange={(e) => handleBgDescriptionChange(e.target.value)}
-                      placeholder="Ví dụ: A magnificent, romantic wedding floral archway with lush blush pink roses, creamy white peonies, and eucalyptus greenery. Soft golden sunlight entering from the left, delicate rose petals on the polished marble floor. Vertical 9:16 composition."
-                      className="w-full p-3 bg-slate-950 border-2 border-amber-500/40 rounded-xl text-xs font-mono text-amber-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 leading-relaxed resize-y"
-                    />
+              {/* PHẦN MÔ TẢ BỐI CẢNH CŨ (TRÍCH XUẤT ĐỂ COPY & THAM KHẢO) */}
+              <div className="bg-gradient-to-r from-amber-950/40 via-amber-900/20 to-slate-900 border border-amber-500/40 rounded-xl p-3.5 space-y-2.5 shadow-inner">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-500/20 pb-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
+                    <Wand2 className="w-4 h-4 text-amber-400" />
+                    <span>Mô Tả Bối Cảnh Phông Nền Cũ (Trích Xuất Để Bạn Copy):</span>
                   </div>
-                ) : null}
-              </div>
 
-              {/* Full Width Prompt Editor / Live Preview */}
-              <div className="space-y-1.5 pt-1">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                    <span>
-                      Lệnh Ghép Phông AI (Gemini Master Prompt)
-                      <span className="text-rose-400">*</span>
-                    </span>
-                  </label>
-                  <span className="text-[11px] font-mono text-purple-400 font-semibold">
-                    {editingTemplate.prompt?.length || 0} ký tự (Có thể chỉnh sửa trực tiếp)
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (currentBgDesc) {
+                          navigator.clipboard.writeText(currentBgDesc);
+                          showToast('📋 Đã sao chép mô tả bối cảnh cũ vào bộ nhớ tạm!');
+                        } else {
+                          showToast('⚠️ Chưa có nội dung mô tả bối cảnh để sao chép.');
+                        }
+                      }}
+                      className="px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/50 rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Sao Chép Mô Tả Này</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (currentBgDesc) {
+                          setEditingTemplate((prev) => ({
+                            ...prev,
+                            prompt: (prev.prompt ? prev.prompt.trim() + '\n\n' : '') + currentBgDesc.trim(),
+                          }));
+                          showToast('📥 Đã chèn mô tả vào cuối ô Master Prompt!');
+                        }
+                      }}
+                      className="px-2.5 py-1 bg-slate-800 hover:bg-slate-750 text-slate-200 border border-slate-700 rounded-lg text-xs font-medium flex items-center gap-1 transition cursor-pointer"
+                    >
+                      <span>Chèn Vào Prompt</span>
+                    </button>
+                  </div>
                 </div>
 
                 <textarea
-                  rows={9}
+                  rows={3}
+                  value={currentBgDesc}
+                  onChange={(e) => setCurrentBgDesc(e.target.value)}
+                  placeholder="Mô tả bối cảnh phông nền cũ trích xuất từ prompt (Bấm 'Sao Chép Mô Tả Này' để copy và dán vào câu lệnh bên dưới)..."
+                  className="w-full p-2.5 bg-slate-950 border border-amber-500/30 rounded-lg text-xs font-mono text-amber-200 placeholder-slate-500 leading-relaxed resize-y focus:outline-none focus:border-amber-400 shadow-inner"
+                />
+
+                <div className="flex items-center justify-between text-[11px] text-amber-300/80">
+                  <span>💡 Bạn có thể bấm <b>"Sao Chép Mô Tả Này"</b> để copy nhanh và paste vào bất kỳ vị trí nào trong Master Prompt bên dưới.</span>
+                  <span className="font-mono text-amber-400/90">{currentBgDesc.length} ký tự</span>
+                </div>
+              </div>
+
+              {/* FREEFORM MASTER PROMPT EDITOR - NO RIGID MOLDS */}
+              <div className="bg-gradient-to-br from-purple-950/40 via-indigo-950/20 to-slate-900 p-4 rounded-2xl border border-purple-500/30 space-y-3 shadow-inner">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-500/20 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-purple-400" />
+                    <div>
+                      <label className="text-xs font-bold text-white flex items-center gap-2">
+                        <span>Câu Lệnh Ghép Phông AI (Gemini Master Prompt)</span>
+                        <span className="text-rose-400">*</span>
+                      </label>
+                      <p className="text-[11px] text-purple-300/80">
+                        Soạn thảo tự do 100% — AI sẽ nhận và xử lý chính xác toàn bộ câu lệnh này.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono text-purple-300 font-semibold bg-purple-500/20 px-2.5 py-1 rounded-full border border-purple-500/30">
+                      {editingTemplate.prompt?.length || 0} ký tự • {editingTemplate.prompt ? editingTemplate.prompt.split('\n').length : 0} dòng
+                    </span>
+                  </div>
+                </div>
+
+                {/* Optional Quick Helper Buttons (Chỉ là gợi ý tùy chọn, không ép buộc) */}
+                <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                  <span className="text-slate-400 font-medium mr-1 text-[11px]">Công cụ nhanh:</span>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('Chèn cấu trúc gợi ý ngắn gọn vào ô Master Prompt?')) {
+                        setEditingTemplate((prev) => ({ ...prev, prompt: CONCISE_PROMPT_SUGGESTION }));
+                      }
+                    }}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/30 rounded-lg font-medium transition cursor-pointer"
+                  >
+                    🎯 Chèn Mẫu Ngắn Gọn
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('Chèn cấu trúc gợi ý Studio 12 phần vào ô Master Prompt?')) {
+                        setEditingTemplate((prev) => ({ ...prev, prompt: MASTER_PROMPT_TEMPLATE }));
+                      }
+                    }}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 rounded-lg font-medium transition cursor-pointer"
+                  >
+                    ⚡ Chèn Mẫu Studio 12 Phần
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (editingTemplate.prompt) {
+                        navigator.clipboard.writeText(editingTemplate.prompt);
+                        showToast('📋 Đã sao chép Master Prompt vào bộ nhớ tạm!');
+                      }
+                    }}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg font-medium transition cursor-pointer"
+                  >
+                    📋 Sao Chép Toàn Bộ
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('Bạn có chắc muốn xóa trắng ô Master Prompt để viết mới từ đầu?')) {
+                        setEditingTemplate((prev) => ({ ...prev, prompt: '' }));
+                      }
+                    }}
+                    className="px-2.5 py-1 bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-800/50 rounded-lg font-medium transition cursor-pointer"
+                  >
+                    🧹 Xóa Trắng
+                  </button>
+                </div>
+
+                {/* Freeform Textarea */}
+                <textarea
+                  rows={13}
                   required
                   value={editingTemplate.prompt || ''}
                   onChange={(e) => setEditingTemplate((prev) => ({ ...prev, prompt: e.target.value }))}
-                  placeholder="Nhập câu lệnh hướng dẫn AI thay nền chi tiết tại đây..."
-                  className="w-full p-3.5 bg-slate-950 border border-slate-750 rounded-xl text-xs font-mono text-emerald-300 placeholder-slate-600 focus:outline-none focus:border-purple-500 leading-relaxed resize-y shadow-inner"
+                  placeholder="Nhập toàn bộ câu lệnh Master Prompt tùy ý tại đây (Tiếng Việt hoặc Tiếng Anh, chỉ dẫn bối cảnh, bảo toàn khuôn mặt, ánh sáng, góc máy, chiều sâu trường ảnh...)..."
+                  className="w-full p-4 bg-slate-950 border border-slate-750 rounded-xl text-xs font-mono text-emerald-300 placeholder-slate-600 focus:outline-none focus:border-purple-500 leading-relaxed resize-y shadow-inner"
                 />
+
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>
+                    Gợi ý: Bạn có thể viết câu lệnh bằng bất kỳ ngôn ngữ nào (Việt / Anh), dài ngắn tùy ý. Không cần tuân theo bất kỳ biến số hay thẻ khuôn mẫu cố định nào.
+                  </span>
+                </div>
               </div>
 
               {/* Submit Buttons */}
-              <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsEditModalOpen(false)}
@@ -848,7 +968,7 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
                   className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md shadow-purple-600/20 flex items-center gap-1.5 transition disabled:opacity-50 cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
-                  <span>{isSaving ? 'Đang Lưu...' : 'Lưu Mẫu Phông Nền'}</span>
+                  <span>{isSaving ? 'Đang Lưu...' : 'Lưu Mẫu Phông & Master Prompt'}</span>
                 </button>
               </div>
             </form>
@@ -856,15 +976,125 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
         </div>
       )}
 
-      {/* MODAL 2: FULL PROMPT VIEWER */}
+      {/* MODAL 2: GLOBAL SYSTEM MASTER PROMPT CONFIGURATION */}
+      {isSystemPromptModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto animate-fadeIn">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-2xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl my-auto space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-5 h-5 text-amber-400" />
+                <div>
+                  <h3 className="font-bold text-sm sm:text-base text-white">
+                    Cấu Hình Master Prompt Mặc Định Toàn Hệ Thống
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Cấu hình này được lưu trực tiếp trên Firestore database và áp dụng làm mẫu khởi tạo khi tạo phông nền mới.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSystemPromptModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-amber-300 font-semibold flex items-center gap-1.5">
+                  <Wand2 className="w-4 h-4 text-amber-400" />
+                  Nội dung Master Prompt Hệ Thống
+                </span>
+                <span className="text-[11px] font-mono text-slate-400">
+                  {systemPromptDraft.length} ký tự • {systemPromptDraft ? systemPromptDraft.split('\n').length : 0} dòng
+                </span>
+              </div>
+
+              <textarea
+                rows={16}
+                value={systemPromptDraft}
+                onChange={(e) => setSystemPromptDraft(e.target.value)}
+                placeholder="Nhập Master Prompt mặc định của hệ thống..."
+                className="w-full p-4 bg-slate-950 border border-slate-750 rounded-xl text-xs font-mono text-emerald-300 placeholder-slate-600 focus:outline-none focus:border-amber-400 leading-relaxed resize-y shadow-inner"
+              />
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('Khôi phục Master Prompt hệ thống về mẫu gốc chuẩn Studio?')) {
+                        setSystemPromptDraft(MASTER_PROMPT_TEMPLATE);
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-750 rounded-lg text-xs font-medium flex items-center gap-1 transition"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Mẫu Studio Gốc</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (window.confirm('Chuyển Master Prompt hệ thống về mẫu súc tích ngắn gọn?')) {
+                        setSystemPromptDraft(CONCISE_PROMPT_SUGGESTION);
+                      }
+                    }}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-750 rounded-lg text-xs font-medium flex items-center gap-1 transition"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Mẫu Súc Tích</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(systemPromptDraft);
+                      showToast('📋 Đã sao chép Master Prompt hệ thống vào bộ nhớ tạm!');
+                    }}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-300 border border-slate-750 rounded-lg text-xs font-medium flex items-center gap-1 transition"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Sao Chép</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsSystemPromptModalOpen(false)}
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-semibold rounded-xl"
+                  >
+                    Đóng
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSaveSystemPrompt}
+                    disabled={isSavingSystemPrompt}
+                    className="px-5 py-2 bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-amber-600/20 disabled:opacity-50 cursor-pointer"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>{isSavingSystemPrompt ? 'Đang Lưu...' : 'Lưu Master Prompt Hệ Thống'}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: FULL PROMPT & BACKGROUND DESCRIPTION VIEWER */}
       {viewPromptTemplate && (
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-750 text-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl space-y-4 p-5">
+          <div className="bg-slate-900 border border-slate-750 text-white rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl space-y-4 p-5">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-purple-400" />
                 <h3 className="font-bold text-sm text-white">
-                  Chi Tiết Prompt: {viewPromptTemplate.name_vn}
+                  Chi Tiết Master Prompt: {viewPromptTemplate.name_vn}
                 </h3>
               </div>
               <button
@@ -876,15 +1106,53 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
               </button>
             </div>
 
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 max-h-96 overflow-y-auto font-mono text-xs text-emerald-300 leading-relaxed whitespace-pre-wrap">
-              {viewPromptTemplate.prompt}
+            {/* Section: Extracted Background Description */}
+            <div className="bg-amber-950/30 border border-amber-500/40 rounded-xl p-3.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-300 flex items-center gap-1.5">
+                  <Wand2 className="w-3.5 h-3.5 text-amber-400" />
+                  Mô Tả Bối Cảnh Phông Nền Cũ (Trích Xuất Để Copy):
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const desc = extractBackgroundDescription(viewPromptTemplate.prompt) || viewPromptTemplate.prompt;
+                    navigator.clipboard.writeText(desc);
+                    showToast('📋 Đã sao chép đoạn mô tả bối cảnh!');
+                  }}
+                  className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 rounded-lg text-xs font-bold flex items-center gap-1 transition cursor-pointer"
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>Copy Riêng Đoạn Này</span>
+                </button>
+              </div>
+
+              <div className="bg-slate-950 p-2.5 rounded-lg border border-amber-500/20 text-xs font-mono text-amber-200 max-h-32 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                {extractBackgroundDescription(viewPromptTemplate.prompt) || 'Không phát hiện mô tả tách biệt (prompt dạng tự do).'}
+              </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2">
+            {/* Section: Full Master Prompt */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-xs text-slate-300 font-semibold">
+                <span>Toàn Bộ Master Prompt:</span>
+                <span className="text-[11px] font-mono text-purple-400">
+                  {viewPromptTemplate.prompt?.length || 0} ký tự • {viewPromptTemplate.prompt ? viewPromptTemplate.prompt.split('\n').length : 0} dòng
+                </span>
+              </div>
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 max-h-[40vh] overflow-y-auto font-mono text-xs text-emerald-300 leading-relaxed whitespace-pre-wrap shadow-inner">
+                {viewPromptTemplate.prompt}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
               <button
                 type="button"
-                onClick={() => handleCopyPrompt(viewPromptTemplate)}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5"
+                onClick={() => {
+                  handleCopyPrompt(viewPromptTemplate);
+                  showToast('📋 Đã sao chép toàn bộ Master Prompt!');
+                }}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 cursor-pointer"
               >
                 {copiedPromptId === viewPromptTemplate.id ? (
                   <>
@@ -894,14 +1162,28 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
                 ) : (
                   <>
                     <Copy className="w-3.5 h-3.5" />
-                    <span>Sao Chép Toàn Bộ</span>
+                    <span>Sao Chép Toàn Bộ Prompt</span>
                   </>
                 )}
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const target = viewPromptTemplate;
+                  setViewPromptTemplate(null);
+                  handleEdit(target);
+                }}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 cursor-pointer"
+              >
+                <Edit className="w-3.5 h-3.5" />
+                <span>Chỉnh Sửa Mẫu Này</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setViewPromptTemplate(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl"
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-semibold rounded-xl"
               >
                 Đóng
               </button>
@@ -910,7 +1192,7 @@ export const AdminBackgroundTemplatesManager: React.FC = () => {
         </div>
       )}
 
-      {/* Toast Notification */}
+      {/* Floating Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3.5 bg-slate-900/95 text-white font-semibold text-xs rounded-2xl shadow-2xl shadow-purple-950/80 border border-purple-500/50 backdrop-blur-md animate-fade-in transition-all">
           <Sparkles className="w-4 h-4 text-purple-400 shrink-0 animate-pulse" />
