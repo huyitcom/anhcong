@@ -65,6 +65,7 @@
         "resolution": { "type": "string", "enum": ["1K", "2K", "4K"] },
         "creditsDeducted": { "type": "number" },
         "templateName": { "type": "string" },
+        "renderedImageUrl": { "type": "string" },
         "timestamp": { "type": "string" },
         "status": { "type": "string" }
       },

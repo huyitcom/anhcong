@@ -56,7 +56,12 @@ interface AuthContextType {
   loginWithGoogle: () => Promise<UserProfile | null>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  consumeCredits: (amount: number, resolution: '1K' | '2K' | '4K', templateName: string) => Promise<boolean>;
+  consumeCredits: (
+    amount: number,
+    resolution: '1K' | '2K' | '4K',
+    templateName: string,
+    renderedImageUrl?: string
+  ) => Promise<boolean>;
   adminAddCredits: (targetUid: string, amount: number) => Promise<boolean>;
   adminSetRole: (targetUid: string, newRole: string) => Promise<boolean>;
   submitTopupRequest: (
@@ -275,7 +280,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const consumeCredits = async (
     amount: number,
     resolution: '1K' | '2K' | '4K',
-    templateName: string
+    templateName: string,
+    renderedImageUrl?: string
   ): Promise<boolean> => {
     if (!currentUser) return false;
     try {
@@ -295,6 +301,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           resolution,
           creditsDeducted: amount,
           templateName,
+          renderedImageUrl: renderedImageUrl || null,
           timestamp: new Date().toISOString(),
           status: 'success',
         });

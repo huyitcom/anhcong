@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import { uploadRenderToCloudinary } from '../cloudinary';
 import path from 'path';
 import fs from 'fs';
 
@@ -283,12 +284,24 @@ export default async function handler(req: any, res: any) {
     const host = req.headers['x-forwarded-host'] || req.headers['host'] || 'photobookvietnam.net';
     const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
 
-    console.log(`[AI Lighting Restoration] Success! Returned restored image.`);
+    let cloudinaryUrl: string | null = null;
+    try {
+      cloudinaryUrl = await uploadRenderToCloudinary(generatedImageUrl, {
+        userId: (body?.userId || req.headers['x-user-id'] || 'anonymous') as string,
+        templateName: 'cuu_sang_lighting_restore',
+        resolution: validImageSize,
+      });
+    } catch (cErr) {
+      console.warn('[Cloudinary Error]', cErr);
+    }
+
+    console.log(`[AI Lighting Restoration] Success! Returned restored image. Cloudinary: ${cloudinaryUrl || 'N/A'}`);
 
     return res.status(200).json({
       success: true,
       imageUrl: generatedImageUrl,
-      staticUrl,
+      cloudinaryUrl: cloudinaryUrl || staticUrl,
+      staticUrl: cloudinaryUrl || staticUrl,
       fileName: aiFileName,
       resolution: validImageSize,
     });

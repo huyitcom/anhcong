@@ -7,6 +7,7 @@ import fs from 'fs';
 import nodemailer from 'nodemailer';
 import { GoogleGenAI } from '@google/genai';
 import { PayOS } from '@payos/node';
+import { uploadRenderToCloudinary } from './cloudinary';
 
 // PayOS VietQR Payment Configuration
 const PAYOS_CLIENT_ID = process.env.PAYOS_CLIENT_ID || '5f6bbed7-e4c7-4fde-82e5-1290a6b55167';
@@ -900,10 +901,24 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       const host = req.headers['x-forwarded-host'] || req.get('host');
       const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
 
+      // Upload to Cloudinary for permanent storage and admin inspection
+      let cloudinaryUrl: string | null = null;
+      try {
+        const clientUserId = req.body?.userId || req.body?.userEmail || '';
+        cloudinaryUrl = await uploadRenderToCloudinary(generatedImageUrl, {
+          userId: clientUserId,
+          templateName: chosenTheme,
+          resolution: validImageSize,
+        });
+      } catch (cErr) {
+        console.warn('[Cloudinary non-blocking upload error in Express]:', cErr);
+      }
+
       return res.json({
         success: true,
         imageUrl: generatedImageUrl,
-        staticUrl,
+        cloudinaryUrl: cloudinaryUrl || staticUrl,
+        staticUrl: cloudinaryUrl || staticUrl,
         fileName: aiFileName,
         theme: chosenTheme,
         resolution: validImageSize,
@@ -1075,12 +1090,24 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       const host = req.headers['x-forwarded-host'] || req.get('host');
       const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
 
-      console.log(`[AI Lighting Restoration] Success! Restored image saved to ${aiFilePath}`);
+      let cloudinaryUrl: string | null = null;
+      try {
+        cloudinaryUrl = await uploadRenderToCloudinary(generatedImageUrl, {
+          userId: (req.body?.userId || req.headers['x-user-id'] || 'anonymous') as string,
+          templateName: 'cuu_sang_lighting_restore',
+          resolution: validImageSize,
+        });
+      } catch (cErr) {
+        console.warn('[Cloudinary Error]', cErr);
+      }
+
+      console.log(`[AI Lighting Restoration] Success! Restored image saved to ${aiFilePath}. Cloudinary: ${cloudinaryUrl || 'N/A'}`);
 
       return res.json({
         success: true,
         imageUrl: generatedImageUrl,
-        staticUrl,
+        cloudinaryUrl: cloudinaryUrl || staticUrl,
+        staticUrl: cloudinaryUrl || staticUrl,
         fileName: aiFileName,
         resolution: validImageSize,
       });

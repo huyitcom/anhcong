@@ -46,6 +46,45 @@ var import_fs = __toESM(require("fs"), 1);
 var import_nodemailer = __toESM(require("nodemailer"), 1);
 var import_genai = require("@google/genai");
 var import_node = require("@payos/node");
+
+// api/cloudinary.ts
+var import_cloudinary = require("cloudinary");
+var CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "tq2yiygt";
+var API_KEY = process.env.CLOUDINARY_API_KEY || "831334161118296";
+var API_SECRET = process.env.CLOUDINARY_API_SECRET || "OCijUGp73Y8KI1W1sP7OxHbH8Bo";
+import_cloudinary.v2.config({
+  cloud_name: CLOUD_NAME,
+  api_key: API_KEY,
+  api_secret: API_SECRET,
+  secure: true
+});
+async function uploadRenderToCloudinary(base64OrUrl, options) {
+  try {
+    if (!CLOUD_NAME || !API_KEY || !API_SECRET) {
+      console.warn("[Cloudinary] Missing credentials, skipping upload");
+      return null;
+    }
+    const publicId = `render_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const result = await import_cloudinary.v2.uploader.upload(base64OrUrl, {
+      folder: "ai-wedding-renders",
+      public_id: publicId,
+      resource_type: "image",
+      tags: ["ai_render", options?.templateName || "wedding_bg"].filter(Boolean),
+      context: {
+        userId: options?.userId || "",
+        template: options?.templateName || "",
+        resolution: options?.resolution || ""
+      }
+    });
+    console.log("[Cloudinary] Rendered image uploaded successfully:", result.secure_url);
+    return result.secure_url;
+  } catch (error) {
+    console.error("[Cloudinary Upload Error]", error);
+    return null;
+  }
+}
+
+// api/index.ts
 import_dotenv.default.config();
 var PAYOS_CLIENT_ID = process.env.PAYOS_CLIENT_ID || "5f6bbed7-e4c7-4fde-82e5-1290a6b55167";
 var PAYOS_API_KEY = process.env.PAYOS_API_KEY || "64d99978-d52c-4f37-88bd-b2a3d4da42a8";
@@ -767,10 +806,22 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       const protocol = req.headers["x-forwarded-proto"] || req.protocol;
       const host = req.headers["x-forwarded-host"] || req.get("host");
       const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
+      let cloudinaryUrl = null;
+      try {
+        const clientUserId = req.body?.userId || req.body?.userEmail || "";
+        cloudinaryUrl = await uploadRenderToCloudinary(generatedImageUrl, {
+          userId: clientUserId,
+          templateName: chosenTheme,
+          resolution: validImageSize
+        });
+      } catch (cErr) {
+        console.warn("[Cloudinary non-blocking upload error in Express]:", cErr);
+      }
       return res.json({
         success: true,
         imageUrl: generatedImageUrl,
-        staticUrl,
+        cloudinaryUrl: cloudinaryUrl || staticUrl,
+        staticUrl: cloudinaryUrl || staticUrl,
         fileName: aiFileName,
         theme: chosenTheme,
         resolution: validImageSize
@@ -909,11 +960,22 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       const protocol = req.headers["x-forwarded-proto"] || req.protocol;
       const host = req.headers["x-forwarded-host"] || req.get("host");
       const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
-      console.log(`[AI Lighting Restoration] Success! Restored image saved to ${aiFilePath}`);
+      let cloudinaryUrl = null;
+      try {
+        cloudinaryUrl = await uploadRenderToCloudinary(generatedImageUrl, {
+          userId: req.body?.userId || req.headers["x-user-id"] || "anonymous",
+          templateName: "cuu_sang_lighting_restore",
+          resolution: validImageSize
+        });
+      } catch (cErr) {
+        console.warn("[Cloudinary Error]", cErr);
+      }
+      console.log(`[AI Lighting Restoration] Success! Restored image saved to ${aiFilePath}. Cloudinary: ${cloudinaryUrl || "N/A"}`);
       return res.json({
         success: true,
         imageUrl: generatedImageUrl,
-        staticUrl,
+        cloudinaryUrl: cloudinaryUrl || staticUrl,
+        staticUrl: cloudinaryUrl || staticUrl,
         fileName: aiFileName,
         resolution: validImageSize
       });

@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import fs from 'fs';
+import { uploadRenderToCloudinary } from '../cloudinary';
 
 // Ensure uploads folder exists (use /tmp on Vercel/serverless environments)
 const UPLOADS_DIR = (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
@@ -237,10 +238,23 @@ Ensure natural lighting integration, matching color temperature, realistic shado
     const host = req.headers['x-forwarded-host'] || req.headers['host'] || 'photobookvietnam.net';
     const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
 
+    // Upload to Cloudinary for permanent storage and admin inspection
+    let cloudinaryUrl: string | null = null;
+    try {
+      cloudinaryUrl = await uploadRenderToCloudinary(generatedImageUrl, {
+        userId: userId || userEmail,
+        templateName: chosenTheme,
+        resolution: validImageSize,
+      });
+    } catch (cErr) {
+      console.warn('[Cloudinary non-blocking upload error]:', cErr);
+    }
+
     return res.status(200).json({
       success: true,
       imageUrl: generatedImageUrl,
-      staticUrl,
+      cloudinaryUrl: cloudinaryUrl || staticUrl,
+      staticUrl: cloudinaryUrl || staticUrl,
       fileName: aiFileName,
       theme: chosenTheme,
       resolution: validImageSize,
