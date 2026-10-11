@@ -1,15 +1,13 @@
 {
   "version": 2,
+  "outputDirectory": "dist",
   "functions": {
     "api/**": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "memory": 1024
     }
   },
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api"
-    },
     {
       "source": "/((?!api/|uploads/|download/).*)",
       "destination": "/index.html"

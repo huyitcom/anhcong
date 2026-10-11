@@ -225,35 +225,68 @@ export default async function handler(req: any, res: any) {
       ? prompt.trim()
       : LIGHTING_RESTORATION_PROMPT;
 
-    console.log(`[AI Lighting Restoration] Calling Gemini with prompt length ${restorationPrompt.length}...`);
+    const candidateModels = [
+      'gemini-3.1-flash-image',
+      'gemini-3.1-flash-lite-image',
+      'gemini-nano-banana-2.1',
+    ];
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-image',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              data: base64Data,
-              mimeType: mimeType,
-            },
-          },
-          {
-            text: restorationPrompt,
-          },
-        ],
-      },
-      config: {
-        imageConfig: {
+    let response: any = null;
+    let lastError: any = null;
+
+    for (const modelName of candidateModels) {
+      try {
+        console.log(`[AI Lighting Restoration] Trying model: ${modelName} (ratio: ${validAspectRatio}, size: ${validImageSize})`);
+        
+        const imageConfig: any = {
           aspectRatio: validAspectRatio,
-          imageSize: validImageSize,
-        },
-      },
-    });
+        };
+        if (modelName === 'gemini-nano-banana-2.1' || modelName === 'gemini-3-pro-image' || modelName === 'gemini-3.1-flash-image') {
+          imageConfig.imageSize = validImageSize;
+        }
+
+        const resCandidate = await ai.models.generateContent({
+          model: modelName,
+          contents: {
+            parts: [
+              {
+                inlineData: {
+                  data: base64Data,
+                  mimeType: mimeType,
+                },
+              },
+              {
+                text: restorationPrompt,
+              },
+            ],
+          },
+          config: {
+            imageConfig,
+          },
+        });
+
+        const hasImage = resCandidate?.candidates?.[0]?.content?.parts?.some((p: any) => Boolean(p.inlineData));
+        if (hasImage) {
+          response = resCandidate;
+          console.log(`[AI Lighting Restoration] Success with model: ${modelName}`);
+          break;
+        } else {
+          response = resCandidate;
+        }
+      } catch (mErr: any) {
+        console.warn(`[AI Lighting Restoration] Model ${modelName} failed:`, mErr?.message || mErr);
+        lastError = mErr;
+      }
+    }
+
+    if (!response && lastError) {
+      throw lastError;
+    }
 
     let generatedImageUrl: string | null = null;
     let generatedText: string | null = null;
 
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
+    for (const part of response?.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) {
         const imgMime = part.inlineData.mimeType || 'image/png';
         generatedImageUrl = `data:${imgMime};base64,${part.inlineData.data}`;

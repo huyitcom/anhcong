@@ -65,7 +65,7 @@ async function uploadRenderToCloudinary(base64OrUrl, options) {
       return null;
     }
     const publicId = `render_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const result = await import_cloudinary.v2.uploader.upload(base64OrUrl, {
+    const uploadPromise = import_cloudinary.v2.uploader.upload(base64OrUrl, {
       folder: "ai-wedding-renders",
       public_id: publicId,
       resource_type: "image",
@@ -76,10 +76,17 @@ async function uploadRenderToCloudinary(base64OrUrl, options) {
         resolution: options?.resolution || ""
       }
     });
-    console.log("[Cloudinary] Rendered image uploaded successfully:", result.secure_url);
-    return result.secure_url;
+    const timeoutPromise = new Promise(
+      (_, reject) => setTimeout(() => reject(new Error("Cloudinary upload timeout")), 12e3)
+    );
+    const result = await Promise.race([uploadPromise, timeoutPromise]);
+    if (result?.secure_url) {
+      console.log("[Cloudinary] Rendered image uploaded successfully:", result.secure_url);
+      return result.secure_url;
+    }
+    return null;
   } catch (error) {
-    console.error("[Cloudinary Upload Error]", error);
+    console.warn("[Cloudinary Upload Safe Notice]:", error);
     return null;
   }
 }
@@ -756,31 +763,60 @@ Theme: "${chosenTheme}".
 Details: "${promptDetails}".
 Ensure natural lighting integration, matching color temperature, realistic shadows on the subjects, depth of field, and perfect edge blending around hair and veil. The final result must look like a high-end luxury editorial wedding photograph.`;
       }
-      const response = await ai.models.generateContent({
-        model: "gemini-3.1-flash-image",
-        contents: {
-          parts: [
-            {
-              inlineData: {
-                data: base64Data,
-                mimeType
-              }
-            },
-            {
-              text: finalPrompt
-            }
-          ]
-        },
-        config: {
-          imageConfig: {
-            aspectRatio: validAspectRatio,
-            imageSize: validImageSize
+      const candidateModels = [
+        "gemini-3.1-flash-image",
+        "gemini-3.1-flash-lite-image",
+        "gemini-nano-banana-2.1"
+      ];
+      let response = null;
+      let lastError = null;
+      for (const modelName of candidateModels) {
+        try {
+          console.log(`[AI Background Replacement] Trying model: ${modelName} (ratio: ${validAspectRatio}, size: ${validImageSize})`);
+          const imageConfig = {
+            aspectRatio: validAspectRatio
+          };
+          if (modelName === "gemini-nano-banana-2.1" || modelName === "gemini-3-pro-image" || modelName === "gemini-3.1-flash-image") {
+            imageConfig.imageSize = validImageSize;
           }
+          const resCandidate = await ai.models.generateContent({
+            model: modelName,
+            contents: {
+              parts: [
+                {
+                  inlineData: {
+                    data: base64Data,
+                    mimeType
+                  }
+                },
+                {
+                  text: finalPrompt
+                }
+              ]
+            },
+            config: {
+              imageConfig
+            }
+          });
+          const hasImage = resCandidate?.candidates?.[0]?.content?.parts?.some((p) => Boolean(p.inlineData));
+          if (hasImage) {
+            response = resCandidate;
+            console.log(`[AI Background Replacement] Success with model: ${modelName}`);
+            break;
+          } else {
+            response = resCandidate;
+          }
+        } catch (mErr) {
+          console.warn(`[AI Background Replacement] Model ${modelName} failed:`, mErr?.message || mErr);
+          lastError = mErr;
         }
-      });
+      }
+      if (!response && lastError) {
+        throw lastError;
+      }
       let generatedImageUrl = null;
       let generatedText = null;
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
+      for (const part of response?.candidates?.[0]?.content?.parts || []) {
         if (part.inlineData) {
           const imgMime = part.inlineData.mimeType || "image/png";
           generatedImageUrl = `data:${imgMime};base64,${part.inlineData.data}`;
@@ -909,31 +945,60 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       const ai = new import_genai.GoogleGenAI({ apiKey });
       const restorationPrompt = prompt && typeof prompt === "string" && prompt.trim().length > 0 ? prompt.trim() : LIGHTING_RESTORATION_PROMPT;
       console.log(`[AI Lighting Restoration] Calling Gemini model with prompt length ${restorationPrompt.length}...`);
-      const response = await ai.models.generateContent({
-        model: "gemini-3.1-flash-image",
-        contents: {
-          parts: [
-            {
-              inlineData: {
-                data: base64Data,
-                mimeType
-              }
-            },
-            {
-              text: restorationPrompt
-            }
-          ]
-        },
-        config: {
-          imageConfig: {
-            aspectRatio: validAspectRatio,
-            imageSize: validImageSize
+      const candidateModels = [
+        "gemini-3.1-flash-image",
+        "gemini-3.1-flash-lite-image",
+        "gemini-nano-banana-2.1"
+      ];
+      let response = null;
+      let lastError = null;
+      for (const modelName of candidateModels) {
+        try {
+          console.log(`[AI Lighting Restoration] Trying model: ${modelName} (ratio: ${validAspectRatio}, size: ${validImageSize})`);
+          const imageConfig = {
+            aspectRatio: validAspectRatio
+          };
+          if (modelName === "gemini-nano-banana-2.1" || modelName === "gemini-3-pro-image" || modelName === "gemini-3.1-flash-image") {
+            imageConfig.imageSize = validImageSize;
           }
+          const resCandidate = await ai.models.generateContent({
+            model: modelName,
+            contents: {
+              parts: [
+                {
+                  inlineData: {
+                    data: base64Data,
+                    mimeType
+                  }
+                },
+                {
+                  text: restorationPrompt
+                }
+              ]
+            },
+            config: {
+              imageConfig
+            }
+          });
+          const hasImage = resCandidate?.candidates?.[0]?.content?.parts?.some((p) => Boolean(p.inlineData));
+          if (hasImage) {
+            response = resCandidate;
+            console.log(`[AI Lighting Restoration] Success with model: ${modelName}`);
+            break;
+          } else {
+            response = resCandidate;
+          }
+        } catch (mErr) {
+          console.warn(`[AI Lighting Restoration] Model ${modelName} failed:`, mErr?.message || mErr);
+          lastError = mErr;
         }
-      });
+      }
+      if (!response && lastError) {
+        throw lastError;
+      }
       let generatedImageUrl = null;
       let generatedText = null;
-      for (const part of response.candidates?.[0]?.content?.parts || []) {
+      for (const part of response?.candidates?.[0]?.content?.parts || []) {
         if (part.inlineData) {
           const imgMime = part.inlineData.mimeType || "image/png";
           generatedImageUrl = `data:${imgMime};base64,${part.inlineData.data}`;
@@ -1000,8 +1065,21 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       });
     }
   });
+  apiRouter.get("/", (req, res) => {
+    res.json({
+      status: "ok",
+      service: "Photobook Vietnam Studio API",
+      timestamp: (/* @__PURE__ */ new Date()).toISOString()
+    });
+  });
   app2.use("/api", apiRouter);
   app2.use(apiRouter);
+  app2.use((req, res) => {
+    res.status(404).json({
+      success: false,
+      error: `API Route not found: ${req.method} ${req.url}`
+    });
+  });
   return app2;
 }
 var app = createExpressApp();

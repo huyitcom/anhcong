@@ -182,33 +182,70 @@ Details: "${promptDetails}".
 Ensure natural lighting integration, matching color temperature, realistic shadows on the subjects, depth of field, and perfect edge blending around hair and veil. The final result must look like a high-end luxury editorial wedding photograph.`;
     }
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-image',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              data: base64Data,
-              mimeType: mimeType,
-            },
-          },
-          {
-            text: finalPrompt,
-          },
-        ],
-      },
-      config: {
-        imageConfig: {
+    const candidateModels = [
+      'gemini-3.1-flash-image',
+      'gemini-3.1-flash-lite-image',
+      'gemini-nano-banana-2.1',
+    ];
+
+    let response: any = null;
+    let lastError: any = null;
+
+    for (const modelName of candidateModels) {
+      try {
+        console.log(`[AI Replace Background] Trying model: ${modelName} (ratio: ${validAspectRatio}, size: ${validImageSize})`);
+        
+        const imageConfig: any = {
           aspectRatio: validAspectRatio,
-          imageSize: validImageSize,
-        },
-      },
-    });
+        };
+        // imageSize is supported by nano banana models
+        if (modelName === 'gemini-nano-banana-2.1' || modelName === 'gemini-3-pro-image' || modelName === 'gemini-3.1-flash-image') {
+          imageConfig.imageSize = validImageSize;
+        }
+
+        const resCandidate = await ai.models.generateContent({
+          model: modelName,
+          contents: {
+            parts: [
+              {
+                inlineData: {
+                  data: base64Data,
+                  mimeType: mimeType,
+                },
+              },
+              {
+                text: finalPrompt,
+              },
+            ],
+          },
+          config: {
+            imageConfig,
+          },
+        });
+
+        const hasImage = resCandidate?.candidates?.[0]?.content?.parts?.some((p: any) => Boolean(p.inlineData));
+        if (hasImage) {
+          response = resCandidate;
+          console.log(`[AI Replace Background] Success with model: ${modelName}`);
+          break;
+        } else {
+          console.warn(`[AI Replace Background] Model ${modelName} returned no image parts, trying next model...`);
+          response = resCandidate; // Keep as fallback candidate
+        }
+      } catch (mErr: any) {
+        console.warn(`[AI Replace Background] Model ${modelName} failed:`, mErr?.message || mErr);
+        lastError = mErr;
+      }
+    }
+
+    if (!response && lastError) {
+      throw lastError;
+    }
 
     let generatedImageUrl: string | null = null;
     let generatedText: string | null = null;
 
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
+    for (const part of response?.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) {
         const imgMime = part.inlineData.mimeType || 'image/png';
         generatedImageUrl = `data:${imgMime};base64,${part.inlineData.data}`;

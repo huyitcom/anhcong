@@ -26,7 +26,9 @@ export async function uploadRenderToCloudinary(
     }
 
     const publicId = `render_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const result = await cloudinary.uploader.upload(base64OrUrl, {
+    
+    // Add 12s timeout so Cloudinary upload never delays or crashes Vercel response
+    const uploadPromise = cloudinary.uploader.upload(base64OrUrl, {
       folder: 'ai-wedding-renders',
       public_id: publicId,
       resource_type: 'image',
@@ -38,10 +40,19 @@ export async function uploadRenderToCloudinary(
       },
     });
 
-    console.log('[Cloudinary] Rendered image uploaded successfully:', result.secure_url);
-    return result.secure_url;
+    const timeoutPromise = new Promise<null>((_, reject) =>
+      setTimeout(() => reject(new Error('Cloudinary upload timeout')), 12000)
+    );
+
+    const result: any = await Promise.race([uploadPromise, timeoutPromise]);
+
+    if (result?.secure_url) {
+      console.log('[Cloudinary] Rendered image uploaded successfully:', result.secure_url);
+      return result.secure_url;
+    }
+    return null;
   } catch (error) {
-    console.error('[Cloudinary Upload Error]', error);
+    console.warn('[Cloudinary Upload Safe Notice]:', error);
     return null;
   }
 }
