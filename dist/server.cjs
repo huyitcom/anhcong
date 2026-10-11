@@ -46,9 +46,8 @@ var import_fs = __toESM(require("fs"), 1);
 var import_nodemailer = __toESM(require("nodemailer"), 1);
 var import_genai = require("@google/genai");
 var import_node = require("@payos/node");
-
-// api/cloudinary.ts
 var import_cloudinary = require("cloudinary");
+import_dotenv.default.config();
 var CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "tq2yiygt";
 var API_KEY = process.env.CLOUDINARY_API_KEY || "831334161118296";
 var API_SECRET = process.env.CLOUDINARY_API_SECRET || "OCijUGp73Y8KI1W1sP7OxHbH8Bo";
@@ -60,12 +59,9 @@ import_cloudinary.v2.config({
 });
 async function uploadRenderToCloudinary(base64OrUrl, options) {
   try {
-    if (!CLOUD_NAME || !API_KEY || !API_SECRET) {
-      console.warn("[Cloudinary] Missing credentials, skipping upload");
-      return null;
-    }
+    if (!CLOUD_NAME || !API_KEY || !API_SECRET) return null;
     const publicId = `render_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const uploadPromise = import_cloudinary.v2.uploader.upload(base64OrUrl, {
+    const result = await import_cloudinary.v2.uploader.upload(base64OrUrl, {
       folder: "ai-wedding-renders",
       public_id: publicId,
       resource_type: "image",
@@ -76,23 +72,12 @@ async function uploadRenderToCloudinary(base64OrUrl, options) {
         resolution: options?.resolution || ""
       }
     });
-    const timeoutPromise = new Promise(
-      (_, reject) => setTimeout(() => reject(new Error("Cloudinary upload timeout")), 12e3)
-    );
-    const result = await Promise.race([uploadPromise, timeoutPromise]);
-    if (result?.secure_url) {
-      console.log("[Cloudinary] Rendered image uploaded successfully:", result.secure_url);
-      return result.secure_url;
-    }
-    return null;
-  } catch (error) {
-    console.warn("[Cloudinary Upload Safe Notice]:", error);
+    return result?.secure_url || null;
+  } catch (err) {
+    console.warn("[Cloudinary upload notice]:", err);
     return null;
   }
 }
-
-// api/index.ts
-import_dotenv.default.config();
 var PAYOS_CLIENT_ID = process.env.PAYOS_CLIENT_ID || "5f6bbed7-e4c7-4fde-82e5-1290a6b55167";
 var PAYOS_API_KEY = process.env.PAYOS_API_KEY || "64d99978-d52c-4f37-88bd-b2a3d4da42a8";
 var PAYOS_CHECKSUM_KEY = process.env.PAYOS_CHECKSUM_KEY || "9b00ffc968a8ea8599a3f2ec7c935675cc7dd043ad9df2020491478e124b50b6";
@@ -473,7 +458,7 @@ function createExpressApp() {
     }
   });
   const apiRouter = import_express.default.Router();
-  apiRouter.get(["/health", "/healthz"], (req, res) => {
+  apiRouter.get(["/health", "/healthz"], (_req, res) => {
     const geminiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || "").trim();
     res.json({
       status: "ok",
@@ -757,14 +742,12 @@ function createExpressApp() {
       let finalPrompt = (prompt || customPrompt || themePrompt || "").trim();
       if (!finalPrompt || finalPrompt.length < 20) {
         finalPrompt = `Professional Wedding Photo Retouching & Background Replacement:
-Keep the bride and groom exactly as they are in the original photo: preserve their faces, identities, expressions, hairstyles, poses, wedding outfits, flowers, and natural skin tones completely intact and razor sharp.
-Seamlessly replace ONLY the background with a stunning new environment:
+Keep the bride and groom exactly as they are in the original photo: preserve their faces, identities, expressions, hairstyles, poses, wedding outfits, flowers, and natural skin tones completely intact and razor sharp.${preserveFraming !== false ? " Strictly preserve the original distance, scale, framing, and exact facial features of the couple." : ""}
 Theme: "${chosenTheme}".
 Details: "${promptDetails}".
 Ensure natural lighting integration, matching color temperature, realistic shadows on the subjects, depth of field, and perfect edge blending around hair and veil. The final result must look like a high-end luxury editorial wedding photograph.`;
       }
       const candidateModels = [
-        "gemini-3.1-flash-image",
         "gemini-3.1-flash-lite-image",
         "gemini-nano-banana-2.1"
       ];
@@ -946,7 +929,6 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       const restorationPrompt = prompt && typeof prompt === "string" && prompt.trim().length > 0 ? prompt.trim() : LIGHTING_RESTORATION_PROMPT;
       console.log(`[AI Lighting Restoration] Calling Gemini model with prompt length ${restorationPrompt.length}...`);
       const candidateModels = [
-        "gemini-3.1-flash-image",
         "gemini-3.1-flash-lite-image",
         "gemini-nano-banana-2.1"
       ];
@@ -1065,7 +1047,7 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       });
     }
   });
-  apiRouter.get("/", (req, res) => {
+  apiRouter.get("/", (_req, res) => {
     res.json({
       status: "ok",
       service: "Photobook Vietnam Studio API",

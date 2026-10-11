@@ -1,7 +1,47 @@
 import { GoogleGenAI } from '@google/genai';
 import path from 'path';
 import fs from 'fs';
-import { uploadRenderToCloudinary } from '../cloudinary';
+import { v2 as cloudinary } from 'cloudinary';
+
+const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'tq2yiygt';
+const API_KEY = process.env.CLOUDINARY_API_KEY || '831334161118296';
+const API_SECRET = process.env.CLOUDINARY_API_SECRET || 'OCijUGp73Y8KI1W1sP7OxHbH8Bo';
+
+cloudinary.config({
+  cloud_name: CLOUD_NAME,
+  api_key: API_KEY,
+  api_secret: API_SECRET,
+  secure: true,
+});
+
+async function uploadRenderToCloudinary(
+  base64OrUrl: string,
+  options?: {
+    userId?: string;
+    templateName?: string;
+    resolution?: string;
+  }
+): Promise<string | null> {
+  try {
+    if (!CLOUD_NAME || !API_KEY || !API_SECRET) return null;
+    const publicId = `render_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const result: any = await cloudinary.uploader.upload(base64OrUrl, {
+      folder: 'ai-wedding-renders',
+      public_id: publicId,
+      resource_type: 'image',
+      tags: ['ai_render', options?.templateName || 'wedding_bg'].filter(Boolean),
+      context: {
+        userId: options?.userId || '',
+        template: options?.templateName || '',
+        resolution: options?.resolution || '',
+      },
+    });
+    return result?.secure_url || null;
+  } catch (err) {
+    console.warn('[Cloudinary upload notice]:', err);
+    return null;
+  }
+}
 
 // Ensure uploads folder exists (use /tmp on Vercel/serverless environments)
 const UPLOADS_DIR = (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)
@@ -71,19 +111,23 @@ export default async function handler(req: any, res: any) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-gemini-api-key');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-gemini-api-key, x-user-id');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ success: false, error: 'Phương thức không được hỗ trợ (Method Not Allowed).' });
+    return res.status(200).json({ success: false, error: 'Phương thức không được hỗ trợ (Method Not Allowed).' });
   }
 
   try {
     let body = req.body;
-    if (typeof body === 'string') {
+    if (Buffer.isBuffer(body)) {
+      try {
+        body = JSON.parse(body.toString('utf-8'));
+      } catch (_) {}
+    } else if (typeof body === 'string') {
       try {
         body = JSON.parse(body);
       } catch (_) {}
@@ -99,10 +143,12 @@ export default async function handler(req: any, res: any) {
       preserveFraming,
       aspectRatio,
       imageSize = '1K',
+      userId,
+      userEmail,
     } = body || {};
 
     if (!image) {
-      return res.status(400).json({ success: false, error: 'Thiếu dữ liệu hình ảnh (image).' });
+      return res.status(200).json({ success: false, error: 'Thiếu dữ liệu hình ảnh (image).' });
     }
 
     let mimeType = 'image/jpeg';
@@ -163,14 +209,21 @@ export default async function handler(req: any, res: any) {
     ).trim();
 
     if (!apiKey) {
-      return res.status(500).json({
+      return res.status(200).json({
         success: false,
         error: 'Chưa cấu hình GEMINI_API_KEY trên Vercel/hệ thống.',
-        message: 'Chưa tìm thấy biến môi trường GEMINI_API_KEY. Vui lòng vào Vercel Settings > Environment Variables > thêm GEMINI_API_KEY > sau đó Redeploy.',
+        message: 'Chưa tìm thấy biến môi trường GEMINI_API_KEY. Vui lòng vào Vercel Dashboard > Project Settings > Environment Variables > thêm GEMINI_API_KEY > sau đó Redeploy lại dự án.',
       });
     }
 
-    const ai = new GoogleGenAI({ apiKey });
+    const ai = new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
+      },
+    });
 
     let finalPrompt = (prompt || customPrompt || themePrompt || '').trim();
     if (!finalPrompt || finalPrompt.length < 20) {
@@ -182,8 +235,10 @@ Details: "${promptDetails}".
 Ensure natural lighting integration, matching color temperature, realistic shadows on the subjects, depth of field, and perfect edge blending around hair and veil. The final result must look like a high-end luxury editorial wedding photograph.`;
     }
 
+    // Supported models per @google/genai guidelines:
+    // Primary: 'gemini-3.1-flash-lite-image' (fast, reliable)
+    // Secondary: 'gemini-nano-banana-2.1' (supports 1K, 2K, 4K)
     const candidateModels = [
-      'gemini-3.1-flash-image',
       'gemini-3.1-flash-lite-image',
       'gemini-nano-banana-2.1',
     ];
@@ -198,8 +253,7 @@ Ensure natural lighting integration, matching color temperature, realistic shado
         const imageConfig: any = {
           aspectRatio: validAspectRatio,
         };
-        // imageSize is supported by nano banana models
-        if (modelName === 'gemini-nano-banana-2.1' || modelName === 'gemini-3-pro-image' || modelName === 'gemini-3.1-flash-image') {
+        if (modelName === 'gemini-nano-banana-2.1' || modelName === 'gemini-3-pro-image') {
           imageConfig.imageSize = validImageSize;
         }
 
@@ -256,7 +310,7 @@ Ensure natural lighting integration, matching color temperature, realistic shado
     }
 
     if (!generatedImageUrl) {
-      return res.status(500).json({
+      return res.status(200).json({
         success: false,
         error: generatedText || 'AI không thể tạo được hình ảnh thay nền. Vui lòng thử lại với ảnh hoặc góc chụp khác.',
       });
@@ -275,14 +329,17 @@ Ensure natural lighting integration, matching color temperature, realistic shado
     const host = req.headers['x-forwarded-host'] || req.headers['host'] || 'photobookvietnam.net';
     const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
 
-    // Upload to Cloudinary for permanent storage and admin inspection
+    // Upload to Cloudinary for permanent storage (non-blocking, 3s timeout)
     let cloudinaryUrl: string | null = null;
     try {
-      cloudinaryUrl = await uploadRenderToCloudinary(generatedImageUrl, {
-        userId: userId || userEmail,
+      const activeUserId = userId || userEmail || (req.headers['x-user-id'] as string) || 'anonymous';
+      const cPromise = uploadRenderToCloudinary(generatedImageUrl, {
+        userId: activeUserId,
         templateName: chosenTheme,
         resolution: validImageSize,
       });
+      const cTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500));
+      cloudinaryUrl = await Promise.race([cPromise, cTimeout]);
     } catch (cErr) {
       console.warn('[Cloudinary non-blocking upload error]:', cErr);
     }
@@ -312,7 +369,8 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       userFriendlyMessage = 'Hệ thống đã đạt giới hạn yêu cầu AI (429 Quota limit). Tính năng thay nền AI cần kích hoạt gói tài nguyên Google Cloud (Paid API Key). Vui lòng cấu hình thanh toán để tiếp tục sử dụng không giới hạn.';
     }
 
-    return res.status(500).json({
+    // Return status 200 with success: false so Vercel Serverless Function never dies with FUNCTION_INVOCATION_FAILED 500
+    return res.status(200).json({
       success: false,
       error: errMsg,
       isQuotaError,

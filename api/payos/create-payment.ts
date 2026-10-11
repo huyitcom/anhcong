@@ -37,7 +37,7 @@ export default async function handler(req: any, res: any) {
       packageName,
       creditsAmount,
       userId,
-      userEmail,
+      userEmail: _userEmail,
       returnUrl,
       cancelUrl,
     } = req.body || {};

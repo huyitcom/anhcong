@@ -7,7 +7,47 @@ import fs from 'fs';
 import nodemailer from 'nodemailer';
 import { GoogleGenAI } from '@google/genai';
 import { PayOS } from '@payos/node';
-import { uploadRenderToCloudinary } from './cloudinary';
+import { v2 as cloudinary } from 'cloudinary';
+
+const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'tq2yiygt';
+const API_KEY = process.env.CLOUDINARY_API_KEY || '831334161118296';
+const API_SECRET = process.env.CLOUDINARY_API_SECRET || 'OCijUGp73Y8KI1W1sP7OxHbH8Bo';
+
+cloudinary.config({
+  cloud_name: CLOUD_NAME,
+  api_key: API_KEY,
+  api_secret: API_SECRET,
+  secure: true,
+});
+
+async function uploadRenderToCloudinary(
+  base64OrUrl: string,
+  options?: {
+    userId?: string;
+    templateName?: string;
+    resolution?: string;
+  }
+): Promise<string | null> {
+  try {
+    if (!CLOUD_NAME || !API_KEY || !API_SECRET) return null;
+    const publicId = `render_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const result: any = await cloudinary.uploader.upload(base64OrUrl, {
+      folder: 'ai-wedding-renders',
+      public_id: publicId,
+      resource_type: 'image',
+      tags: ['ai_render', options?.templateName || 'wedding_bg'].filter(Boolean),
+      context: {
+        userId: options?.userId || '',
+        template: options?.templateName || '',
+        resolution: options?.resolution || '',
+      },
+    });
+    return result?.secure_url || null;
+  } catch (err) {
+    console.warn('[Cloudinary upload notice]:', err);
+    return null;
+  }
+}
 
 // PayOS VietQR Payment Configuration
 const PAYOS_CLIENT_ID = process.env.PAYOS_CLIENT_ID || '5f6bbed7-e4c7-4fde-82e5-1290a6b55167';
@@ -493,7 +533,7 @@ export function createExpressApp() {
   const apiRouter = express.Router();
 
   // API Health Check
-  apiRouter.get(['/health', '/healthz'], (req, res) => {
+  apiRouter.get(['/health', '/healthz'], (_req, res) => {
     const geminiKey = (process.env.GEMINI_API_KEY || process.env.API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
     res.json({
       status: 'ok',
@@ -838,15 +878,13 @@ export function createExpressApp() {
       let finalPrompt = (prompt || customPrompt || themePrompt || '').trim();
       if (!finalPrompt || finalPrompt.length < 20) {
         finalPrompt = `Professional Wedding Photo Retouching & Background Replacement:
-Keep the bride and groom exactly as they are in the original photo: preserve their faces, identities, expressions, hairstyles, poses, wedding outfits, flowers, and natural skin tones completely intact and razor sharp.
-Seamlessly replace ONLY the background with a stunning new environment:
+Keep the bride and groom exactly as they are in the original photo: preserve their faces, identities, expressions, hairstyles, poses, wedding outfits, flowers, and natural skin tones completely intact and razor sharp.${preserveFraming !== false ? ' Strictly preserve the original distance, scale, framing, and exact facial features of the couple.' : ''}
 Theme: "${chosenTheme}".
 Details: "${promptDetails}".
 Ensure natural lighting integration, matching color temperature, realistic shadows on the subjects, depth of field, and perfect edge blending around hair and veil. The final result must look like a high-end luxury editorial wedding photograph.`;
       }
 
       const candidateModels = [
-        'gemini-3.1-flash-image',
         'gemini-3.1-flash-lite-image',
         'gemini-nano-banana-2.1',
       ];
@@ -1069,7 +1107,6 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       console.log(`[AI Lighting Restoration] Calling Gemini model with prompt length ${restorationPrompt.length}...`);
 
       const candidateModels = [
-        'gemini-3.1-flash-image',
         'gemini-3.1-flash-lite-image',
         'gemini-nano-banana-2.1',
       ];
@@ -1205,7 +1242,7 @@ Ensure natural lighting integration, matching color temperature, realistic shado
     }
   });
 
-  apiRouter.get('/', (req, res) => {
+  apiRouter.get('/', (_req, res) => {
     res.json({
       status: 'ok',
       service: 'Photobook Vietnam Studio API',
