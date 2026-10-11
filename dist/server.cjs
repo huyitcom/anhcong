@@ -1054,14 +1054,13 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       timestamp: (/* @__PURE__ */ new Date()).toISOString()
     });
   });
-  app2.use("/api", apiRouter);
-  app2.use(apiRouter);
-  app2.use((req, res) => {
+  apiRouter.use((req, res) => {
     res.status(404).json({
       success: false,
-      error: `API Route not found: ${req.method} ${req.url}`
+      error: `API Route not found: ${req.method} ${req.originalUrl || req.url}`
     });
   });
+  app2.use("/api", apiRouter);
   return app2;
 }
 var app = createExpressApp();

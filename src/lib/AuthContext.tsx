@@ -60,7 +60,8 @@ interface AuthContextType {
     amount: number,
     resolution: '1K' | '2K' | '4K',
     templateName: string,
-    renderedImageUrl?: string
+    renderedImageUrl?: string,
+    thumbnailUrl?: string
   ) => Promise<boolean>;
   adminAddCredits: (targetUid: string, amount: number) => Promise<boolean>;
   adminSetRole: (targetUid: string, newRole: string) => Promise<boolean>;
@@ -281,7 +282,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     amount: number,
     resolution: '1K' | '2K' | '4K',
     templateName: string,
-    renderedImageUrl?: string
+    renderedImageUrl?: string,
+    thumbnailUrl?: string
   ): Promise<boolean> => {
     if (!currentUser) return false;
     try {
@@ -294,6 +296,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Log render to renderLogs collection
       try {
+        // Sanitize imageUrl: if it is an HTTP/HTTPS URL (Cloudinary, /uploads), keep it.
+        // If it is a huge data URI (> 150KB), do not store raw base64 to avoid Firestore 1MB document limit;
+        // prefer using the compact thumbnailUrl.
+        let safeImageUrl = renderedImageUrl || null;
+        if (safeImageUrl && safeImageUrl.startsWith('data:') && safeImageUrl.length > 150000) {
+          safeImageUrl = null;
+        }
+
         await addDoc(collection(db, 'renderLogs'), {
           userId: currentUser.uid,
           userEmail: currentUser.email || '',
@@ -301,7 +311,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           resolution,
           creditsDeducted: amount,
           templateName,
-          renderedImageUrl: renderedImageUrl || null,
+          renderedImageUrl: safeImageUrl,
+          thumbnailUrl: thumbnailUrl || null,
           timestamp: new Date().toISOString(),
           status: 'success',
         });

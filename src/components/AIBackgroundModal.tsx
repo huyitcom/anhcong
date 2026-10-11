@@ -16,6 +16,7 @@ import {
   CreditCard,
   PlusCircle,
   CheckCircle2,
+  Clock,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { FrameSlot } from '../types';
@@ -23,6 +24,9 @@ import { useAuth } from '../lib/AuthContext';
 import { TopupCreditsModal } from './TopupCreditsModal';
 import { useBackgroundTemplates } from '../lib/backgroundTemplatesService';
 import { parseApiResponse, compressImageForAi } from '../utils/apiHelper';
+import { createImageThumbnail } from '../utils/imageUtils';
+import { saveRenderToHistory } from '../utils/renderHistory';
+import { RenderHistoryModal } from './RenderHistoryModal';
 
 interface AIBackgroundModalProps {
   isOpen: boolean;
@@ -105,8 +109,9 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
   const [viewMode, setViewMode] = useState<'result' | 'compare'>('result');
   const [renderSuccessToast, setRenderSuccessToast] = useState<string | null>(null);
 
-  // Topup Modal State
+  // Topup & History Modal States
   const [isTopupOpen, setIsTopupOpen] = useState<boolean>(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState<boolean>(false);
 
   useEffect(() => {
     setSelectedSlotIndex(initialSlotIndex);
@@ -284,10 +289,32 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
         throw new Error(data.message || data.error || 'Tạo ảnh thất bại.');
       }
 
-      // Deduct credits
-      await consumeCredits(cost, selectedResolution, selectedTemplate.name_vn);
+      const finalImageUrl = data.imageUrl;
+      const cloudOrStaticUrl = data.cloudinaryUrl || data.staticUrl || (finalImageUrl?.startsWith('http') ? finalImageUrl : undefined);
 
-      setGeneratedImage(data.imageUrl);
+      // Generate compact thumbnail for fast and safe Firestore logging (<20KB)
+      const thumbUrl = await createImageThumbnail(finalImageUrl, 260, 0.65);
+
+      // Save to client-side local history for instant retrieval anytime
+      saveRenderToHistory({
+        imageUrl: finalImageUrl,
+        thumbnailUrl: thumbUrl || cloudOrStaticUrl,
+        templateName: selectedTemplate.name_vn,
+        resolution: selectedResolution,
+        timestamp: new Date().toISOString(),
+        type: 'background',
+      });
+
+      // Deduct credits and log to Firestore with image URL / thumbnail
+      await consumeCredits(
+        cost,
+        selectedResolution,
+        selectedTemplate.name_vn,
+        cloudOrStaticUrl,
+        thumbUrl
+      );
+
+      setGeneratedImage(finalImageUrl);
       setGeneratedResolution(data.resolution || selectedResolution);
       setViewMode('result');
 
@@ -387,6 +414,16 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
                   <span>Đăng nhập (Nhận 3 lượt free)</span>
                 </button>
               )}
+
+              <button
+                type="button"
+                onClick={() => setIsHistoryOpen(true)}
+                className="px-2.5 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                title="Xem lại các ảnh bạn đã render trước đây"
+              >
+                <Clock className="w-3.5 h-3.5 text-sky-600" />
+                <span className="hidden sm:inline">Lịch sử ảnh AI</span>
+              </button>
 
               <button
                 onClick={onClose}
@@ -872,6 +909,16 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
         isOpen={isTopupOpen}
         onClose={() => setIsTopupOpen(false)}
         requiredCredits={cost}
+      />
+
+      {/* Render History Modal */}
+      <RenderHistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        onSelectImage={(imageUrl) => {
+          setGeneratedImage(imageUrl);
+          setViewMode('result');
+        }}
       />
     </>
   );

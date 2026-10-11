@@ -24,6 +24,8 @@ import { TopupCreditsModal } from './TopupCreditsModal';
 import { LIGHTING_RESTORATION_PROMPT } from '../data/lightingRestorationPrompt';
 import { HIGHLIGHT_RESTORATION_PROMPT } from '../data/highlightRestorationPrompt';
 import { parseApiResponse, compressImageForAi } from '../utils/apiHelper';
+import { createImageThumbnail } from '../utils/imageUtils';
+import { saveRenderToHistory } from '../utils/renderHistory';
 
 interface PhotoCropModalProps {
   slot: FrameSlot | null;
@@ -214,8 +216,21 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
         throw new Error(data.message || data.error || 'Cứu sáng thất bại.');
       }
 
+      const finalImageUrl = data.imageUrl;
+      const cloudOrStaticUrl = data.cloudinaryUrl || data.staticUrl || (finalImageUrl?.startsWith('http') ? finalImageUrl : undefined);
+      const thumbUrl = await createImageThumbnail(finalImageUrl, 260, 0.65);
+
+      saveRenderToHistory({
+        imageUrl: finalImageUrl,
+        thumbnailUrl: thumbUrl || cloudOrStaticUrl,
+        templateName: 'Cứu sáng ảnh cưới',
+        resolution: selectedResolution,
+        timestamp: new Date().toISOString(),
+        type: 'lighting',
+      });
+
       // Deduct credit
-      await consumeCredits(cost, selectedResolution, 'Cứu sáng ảnh cưới');
+      await consumeCredits(cost, selectedResolution, 'Cứu sáng ảnh cưới', cloudOrStaticUrl, thumbUrl);
 
       // Save original image for undo
       if (!originalImageBeforeRestore) {
@@ -321,8 +336,21 @@ export const PhotoCropModal: React.FC<PhotoCropModalProps> = ({
         throw new Error(data.message || data.error || 'Cứu cháy thất bại.');
       }
 
+      const finalImageUrl = data.imageUrl;
+      const cloudOrStaticUrl = data.cloudinaryUrl || data.staticUrl || (finalImageUrl?.startsWith('http') ? finalImageUrl : undefined);
+      const thumbUrl = await createImageThumbnail(finalImageUrl, 260, 0.65);
+
+      saveRenderToHistory({
+        imageUrl: finalImageUrl,
+        thumbnailUrl: thumbUrl || cloudOrStaticUrl,
+        templateName: 'Cứu cháy ảnh cưới',
+        resolution: selectedResolution,
+        timestamp: new Date().toISOString(),
+        type: 'lighting',
+      });
+
       // Deduct credit
-      await consumeCredits(cost, selectedResolution, 'Cứu cháy ảnh cưới');
+      await consumeCredits(cost, selectedResolution, 'Cứu cháy ảnh cưới', cloudOrStaticUrl, thumbUrl);
 
       // Save original image for undo
       if (!originalImageBeforeRestore) {

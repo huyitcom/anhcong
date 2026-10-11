@@ -10,10 +10,12 @@ import {
   CreditCard,
   Settings,
   PlusCircle,
+  Clock,
 } from 'lucide-react';
 import { useAuth } from '../lib/AuthContext';
 import { TopupCreditsModal } from './TopupCreditsModal';
 import { AdminCreditsManagerModal } from './AdminCreditsManagerModal';
+import { RenderHistoryModal } from './RenderHistoryModal';
 
 export const UserAuthMenu: React.FC = () => {
   const { currentUser, userProfile, loading, isVip, isAdmin, loginWithGoogle, logout } = useAuth();
@@ -21,6 +23,7 @@ export const UserAuthMenu: React.FC = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [isTopupOpen, setIsTopupOpen] = useState(false);
   const [isAdminManagerOpen, setIsAdminManagerOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const handleLogin = async () => {
     try {
@@ -171,16 +174,27 @@ export const UserAuthMenu: React.FC = () => {
                 </div>
               </div>
 
-              {/* Action: Open Topup */}
               <button
                 onClick={() => {
                   setIsOpen(false);
                   setIsTopupOpen(true);
                 }}
-                className="w-full text-left px-4 py-2 hover:bg-stone-50 flex items-center gap-2 font-medium text-stone-700 transition"
+                className="w-full text-left px-4 py-2 hover:bg-stone-50 flex items-center gap-2 font-medium text-stone-700 transition cursor-pointer"
               >
                 <CreditCard className="w-3.5 h-3.5 text-amber-500" />
                 <span>Nạp lượt qua mã VietQR</span>
+              </button>
+
+              {/* Action: Open Render History */}
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  setIsHistoryOpen(true);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-stone-50 flex items-center gap-2 font-medium text-stone-700 transition cursor-pointer"
+              >
+                <Clock className="w-3.5 h-3.5 text-sky-500" />
+                <span>🖼️ Lịch sử ảnh AI đã ghép</span>
               </button>
 
               {/* Admin Management Dashboard Button */}
@@ -234,6 +248,12 @@ export const UserAuthMenu: React.FC = () => {
           onClose={() => setIsAdminManagerOpen(false)}
         />
       )}
+
+      {/* Render History Modal */}
+      <RenderHistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+      />
     </>
   );
 };

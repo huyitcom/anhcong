@@ -1250,17 +1250,16 @@ Ensure natural lighting integration, matching color temperature, realistic shado
     });
   });
 
-  // Mount API router on both '/api' and '/'
-  app.use('/api', apiRouter);
-  app.use(apiRouter);
-
-  // Catch-all 404 handler so no request hangs on Express
-  app.use((req, res) => {
+  // Catch-all 404 handler ONLY for /api routes
+  apiRouter.use((req, res) => {
     res.status(404).json({
       success: false,
-      error: `API Route not found: ${req.method} ${req.url}`,
+      error: `API Route not found: ${req.method} ${req.originalUrl || req.url}`,
     });
   });
+
+  // Mount API router ONLY on '/api'
+  app.use('/api', apiRouter);
 
   return app;
 }
@@ -1286,8 +1285,10 @@ export default function handler(req: any, res: any) {
     });
 
     const matchedPath = req.headers?.['x-matched-path'];
-    if (matchedPath && typeof matchedPath === 'string' && matchedPath.startsWith('/api') && matchedPath !== '/api') {
+    if (matchedPath && typeof matchedPath === 'string' && matchedPath.startsWith('/api')) {
       req.url = matchedPath;
+    } else if (req.url && !req.url.startsWith('/api')) {
+      req.url = `/api${req.url.startsWith('/') ? '' : '/'}${req.url}`;
     }
     app(req, res);
   });

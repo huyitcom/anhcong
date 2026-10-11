@@ -82,3 +82,59 @@ export function setDpiInJpegDataUrl(dataUrl: string, dpi: number = 300): string 
     return dataUrl;
   }
 }
+
+/**
+ * Generates a lightweight JPEG thumbnail (~10-20KB) from any image source (URL or data URI)
+ * suitable for persisting inside Firestore documents without exceeding the 1MB document limit.
+ */
+export async function createImageThumbnail(
+  source: string,
+  maxDimension: number = 240,
+  quality: number = 0.65
+): Promise<string> {
+  return new Promise((resolve) => {
+    if (!source) {
+      resolve('');
+      return;
+    }
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        let width = img.width || maxDimension;
+        let height = img.height || maxDimension;
+        if (width > height) {
+          if (width > maxDimension) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          }
+        } else {
+          if (height > maxDimension) {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, width);
+        canvas.height = Math.max(1, height);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve('');
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const thumbData = canvas.toDataURL('image/jpeg', quality);
+        resolve(thumbData);
+      } catch (err) {
+        console.warn('Could not generate thumbnail:', err);
+        resolve('');
+      }
+    };
+    img.onerror = () => {
+      resolve('');
+    };
+    img.src = source;
+  });
+}
+

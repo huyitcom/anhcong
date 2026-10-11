@@ -13,6 +13,9 @@ import {
   RefreshCw,
   CheckCircle2,
   Wand2,
+  Eye,
+  Download,
+  ImageIcon,
 } from 'lucide-react';
 import {
   collection,
@@ -55,6 +58,8 @@ interface RenderLogItem {
   resolution: string;
   creditsDeducted: number;
   templateName: string;
+  renderedImageUrl?: string;
+  thumbnailUrl?: string;
   timestamp: string;
   status: string;
 }
@@ -78,6 +83,7 @@ export const AdminCreditsManagerModal: React.FC<AdminCreditsManagerModalProps> =
   // Render logs data
   const [logsList, setLogsList] = useState<RenderLogItem[]>([]);
   const [loadingLogs, setLoadingLogs] = useState<boolean>(true);
+  const [previewLog, setPreviewLog] = useState<RenderLogItem | null>(null);
 
   // Custom modal for granting custom amount
   const [selectedUserForEdit, setSelectedUserForEdit] = useState<UserProfile | null>(null);
@@ -570,35 +576,93 @@ export const AdminCreditsManagerModal: React.FC<AdminCreditsManagerModalProps> =
                   <table className="w-full text-left text-xs text-slate-300">
                     <thead className="bg-slate-800/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-750">
                       <tr>
+                        <th className="px-3 py-3 text-center">Hình ảnh</th>
                         <th className="px-4 py-3">Thời gian</th>
                         <th className="px-4 py-3">Người dùng</th>
                         <th className="px-4 py-3">Mẫu phông nền</th>
-                        <th className="px-4 py-3 text-center">Độ phân giải</th>
-                        <th className="px-4 py-3 text-center">Lượt trừ</th>
+                        <th className="px-3 py-3 text-center">Độ phân giải</th>
+                        <th className="px-3 py-3 text-center">Lượt trừ</th>
+                        <th className="px-3 py-3 text-center">Thao tác</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
-                      {logsList.map((log) => (
-                        <tr key={log.id} className="hover:bg-slate-800/40">
-                          <td className="px-4 py-2.5 text-slate-400">
-                            {new Date(log.timestamp).toLocaleString('vi-VN')}
-                          </td>
-                          <td className="px-4 py-2.5 font-medium text-slate-200">
-                            {log.userEmail}
-                          </td>
-                          <td className="px-4 py-2.5 text-white font-semibold">
-                            {log.templateName}
-                          </td>
-                          <td className="px-4 py-2.5 text-center">
-                            <span className="px-2 py-0.5 rounded bg-slate-800 text-purple-300 font-mono text-[11px] font-bold border border-slate-700">
-                              {log.resolution}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2.5 text-center font-bold text-rose-400">
-                            -{log.creditsDeducted} lượt
-                          </td>
-                        </tr>
-                      ))}
+                      {logsList.map((log) => {
+                        const hasImg = Boolean(log.thumbnailUrl || log.renderedImageUrl);
+                        const imgSrc = log.thumbnailUrl || log.renderedImageUrl;
+
+                        return (
+                          <tr key={log.id} className="hover:bg-slate-800/40">
+                            {/* Thumbnail column */}
+                            <td className="px-3 py-2.5 text-center">
+                              {hasImg ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewLog(log)}
+                                  className="group/img relative inline-block cursor-pointer focus:outline-hidden"
+                                  title="Bấm để xem ảnh phóng to"
+                                >
+                                  <img
+                                    src={imgSrc}
+                                    alt={log.templateName}
+                                    className="w-11 h-11 object-cover rounded-lg border border-slate-700 shadow-xs group-hover/img:scale-105 group-hover/img:border-sky-400 transition"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 rounded-lg flex items-center justify-center transition">
+                                    <Eye className="w-3.5 h-3.5 text-white" />
+                                  </div>
+                                </button>
+                              ) : (
+                                <div className="w-11 h-11 mx-auto rounded-lg bg-slate-800/60 border border-slate-700/60 flex flex-col items-center justify-center text-slate-500">
+                                  <ImageIcon className="w-3.5 h-3.5 mb-0.5" />
+                                  <span className="text-[8px] leading-tight">Chưa lưu</span>
+                                </div>
+                              )}
+                            </td>
+
+                            <td className="px-4 py-2.5 text-slate-400 whitespace-nowrap">
+                              {new Date(log.timestamp).toLocaleString('vi-VN')}
+                            </td>
+                            <td className="px-4 py-2.5 font-medium text-slate-200">
+                              <div className="max-w-[140px] truncate" title={log.userEmail}>
+                                {log.userEmail}
+                              </div>
+                              {log.userName && log.userName !== 'User' && (
+                                <div className="text-[10px] text-slate-400 truncate">
+                                  {log.userName}
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-2.5 text-white font-semibold">
+                              <span className="truncate max-w-[150px] block" title={log.templateName}>
+                                {log.templateName}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 text-center">
+                              <span className="px-2 py-0.5 rounded bg-slate-800 text-purple-300 font-mono text-[11px] font-bold border border-slate-700">
+                                {log.resolution}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2.5 text-center font-bold text-rose-400 whitespace-nowrap">
+                              -{log.creditsDeducted} lượt
+                            </td>
+                            <td className="px-3 py-2.5 text-center">
+                              {hasImg ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewLog(log)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-sky-600 text-sky-300 hover:text-white rounded-lg transition text-xs font-semibold cursor-pointer border border-slate-700 hover:border-sky-500"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  <span>Xem</span>
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-slate-500 italic">
+                                  Chưa lưu URL
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -660,6 +724,78 @@ export const AdminCreditsManagerModal: React.FC<AdminCreditsManagerModalProps> =
                   <Minus className="w-3.5 h-3.5" />
                   Trừ Bớt
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Full-size Image Preview for Render Log */}
+        {previewLog && (
+          <div className="fixed inset-0 z-60 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-fadeIn">
+            <div className="bg-slate-900 border border-slate-750 rounded-2xl max-w-xl w-full flex flex-col shadow-2xl overflow-hidden max-h-[90vh]">
+              {/* Header */}
+              <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-850">
+                <div>
+                  <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                    <span>{previewLog.templateName}</span>
+                    <span className="text-[11px] font-mono bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded border border-purple-500/30">
+                      {previewLog.resolution}
+                    </span>
+                  </h3>
+                  <div className="text-[11px] text-slate-400">
+                    Người tạo: <strong className="text-slate-200">{previewLog.userEmail}</strong> &bull; {new Date(previewLog.timestamp).toLocaleString('vi-VN')}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewLog(null)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Image View */}
+              <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-black/90 min-h-[300px]">
+                {previewLog.renderedImageUrl || previewLog.thumbnailUrl ? (
+                  <img
+                    src={previewLog.renderedImageUrl || previewLog.thumbnailUrl}
+                    alt={previewLog.templateName}
+                    className="max-h-[60vh] max-w-full object-contain rounded-lg shadow-xl"
+                  />
+                ) : (
+                  <div className="text-slate-400 text-xs text-center py-10">
+                    Không tìm thấy dữ liệu ảnh.
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="p-3 bg-slate-850 border-t border-slate-800 flex items-center justify-between">
+                <div className="text-[11px] text-rose-400 font-semibold">
+                  Đã trừ: -{previewLog.creditsDeducted} lượt
+                </div>
+                <div className="flex items-center gap-2">
+                  {(previewLog.renderedImageUrl || previewLog.thumbnailUrl) && (
+                    <a
+                      href={previewLog.renderedImageUrl || previewLog.thumbnailUrl}
+                      download={`render_${previewLog.templateName}_${Date.now()}.png`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Tải ảnh</span>
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setPreviewLog(null)}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition cursor-pointer"
+                  >
+                    Đóng
+                  </button>
+                </div>
               </div>
             </div>
           </div>
