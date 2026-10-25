@@ -140,6 +140,7 @@ export default async function handler(req: any, res: any) {
       themePrompt,
       customPrompt,
       templateName,
+      framingMode,
       preserveFraming,
       aspectRatio,
       imageSize = '1K',
@@ -227,24 +228,36 @@ export default async function handler(req: any, res: any) {
 
     let finalPrompt = (prompt || customPrompt || themePrompt || '').trim();
     if (!finalPrompt || finalPrompt.length < 20) {
-      finalPrompt = `Professional Wedding Photo Retouching & Background Replacement:
+      if (framingMode === 'portrait') {
+        finalPrompt = `Professional Wedding Photo Retouching & Background Replacement (PORTRAIT BOKEH MODE):
 Keep the bride and groom exactly as they are in the original photo: preserve their faces, identities, expressions, hairstyles, poses, wedding outfits, flowers, and natural skin tones completely intact and razor sharp.${preserveFraming !== false ? ' Strictly preserve the original distance, scale, framing, and exact facial features of the couple.' : ''}
-Seamlessly replace ONLY the background with a stunning new environment:
 Theme: "${chosenTheme}".
+Camera lens: 85mm f/1.2 portrait prime lens. EXTREME OPTICAL BOKEH blur. The background must dissolve into a dreamy, creamy blur with soft circular light orbs. DO NOT render sharp architectural details or sharp background flowers.
 Details: "${promptDetails}".
-Ensure natural lighting integration, matching color temperature, realistic shadows on the subjects, depth of field, and perfect edge blending around hair and veil. The final result must look like a high-end luxury editorial wedding photograph.`;
+Ensure natural warm golden rim lighting integration. Strictly NO extra people or bystanders in the background.`;
+      } else {
+        finalPrompt = `Professional Wedding Photo Retouching & Background Replacement (FULL-BODY ENVIRONMENTAL MODE):
+Keep the bride and groom exactly as they are in the original photo: preserve their faces, identities, expressions, hairstyles, poses, wedding outfits, full visible bodies, and shoes completely intact and razor sharp.${preserveFraming !== false ? ' Strictly preserve the original distance, scale, framing, and exact facial features of the couple.' : ''}
+Theme: "${chosenTheme}".
+Camera lens: 50mm f/4.0 environmental lens. Clear spatial perspective and natural contact shadows directly beneath their feet on the ground.
+Details: "${promptDetails}".
+Ensure natural lighting integration, matching color temperature, realistic shadows on the ground, depth of field, and perfect edge blending. Strictly NO extra people or bystanders in the background.`;
+      }
     }
 
-    // Supported models per @google/genai guidelines:
-    // Primary: 'gemini-3.1-flash-lite-image' (fast, reliable)
-    // Secondary: 'gemini-nano-banana-2.1' (supports 1K, 2K, 4K)
+    // High-Quality Photographic models:
+    // 'gemini-nano-banana-2.1' (default for high quality & 2K/4K resolution)
+    // 'gemini-3-pro-image' (powerful fallback supporting 2K/4K)
+    // 'gemini-3.1-flash-lite-image' (fast fallback for 1K if quota limits are encountered)
     const candidateModels = [
-      'gemini-3.1-flash-lite-image',
       'gemini-nano-banana-2.1',
+      'gemini-3-pro-image',
+      'gemini-3.1-flash-lite-image',
     ];
 
     let response: any = null;
     let lastError: any = null;
+    let succeededModel = '';
 
     for (const modelName of candidateModels) {
       try {
@@ -280,7 +293,8 @@ Ensure natural lighting integration, matching color temperature, realistic shado
         const hasImage = resCandidate?.candidates?.[0]?.content?.parts?.some((p: any) => Boolean(p.inlineData));
         if (hasImage) {
           response = resCandidate;
-          console.log(`[AI Replace Background] Success with model: ${modelName}`);
+          succeededModel = modelName;
+          console.log(`[AI Replace Background] Success with model: ${modelName} (size: ${modelName === 'gemini-3.1-flash-lite-image' ? '1K' : validImageSize})`);
           break;
         } else {
           console.warn(`[AI Replace Background] Model ${modelName} returned no image parts, trying next model...`);
@@ -344,6 +358,8 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       console.warn('[Cloudinary non-blocking upload error]:', cErr);
     }
 
+    const actualResolution = succeededModel === 'gemini-3.1-flash-lite-image' ? '1K' : validImageSize;
+
     return res.status(200).json({
       success: true,
       imageUrl: generatedImageUrl,
@@ -351,7 +367,8 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       staticUrl: cloudinaryUrl || staticUrl,
       fileName: aiFileName,
       theme: chosenTheme,
-      resolution: validImageSize,
+      resolution: actualResolution,
+      modelUsed: succeededModel,
     });
   } catch (err: any) {
     console.error('[AI Replace Background Error]', err);

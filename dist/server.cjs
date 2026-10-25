@@ -765,6 +765,7 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       ];
       let response = null;
       let lastError = null;
+      let succeededModel = "";
       for (const modelName of candidateModels) {
         try {
           console.log(`[AI Background Replacement] Trying model: ${modelName} (ratio: ${validAspectRatio}, size: ${validImageSize})`);
@@ -796,7 +797,8 @@ Ensure natural lighting integration, matching color temperature, realistic shado
           const hasImage = resCandidate?.candidates?.[0]?.content?.parts?.some((p) => Boolean(p.inlineData));
           if (hasImage) {
             response = resCandidate;
-            console.log(`[AI Background Replacement] Success with model: ${modelName}`);
+            succeededModel = modelName;
+            console.log(`[AI Background Replacement] Success with model: ${modelName} (size: ${modelName === "gemini-3.1-flash-lite-image" ? "1K" : validImageSize})`);
             break;
           } else {
             response = resCandidate;
@@ -848,6 +850,7 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       } catch (cErr) {
         console.warn("[Cloudinary non-blocking upload error in Express]:", cErr);
       }
+      const actualResolution = succeededModel === "gemini-3.1-flash-lite-image" ? "1K" : validImageSize;
       return res.json({
         success: true,
         imageUrl: generatedImageUrl,
@@ -855,7 +858,8 @@ Ensure natural lighting integration, matching color temperature, realistic shado
         staticUrl: cloudinaryUrl || staticUrl,
         fileName: aiFileName,
         theme: chosenTheme,
-        resolution: validImageSize
+        resolution: actualResolution,
+        modelUsed: succeededModel
       });
     } catch (err) {
       console.error("[AI Replace Background Error]", err);

@@ -279,8 +279,9 @@ export default async function handler(req: any, res: any) {
       : LIGHTING_RESTORATION_PROMPT;
 
     const candidateModels = [
-      'gemini-3.1-flash-lite-image',
       'gemini-nano-banana-2.1',
+      'gemini-3-pro-image',
+      'gemini-3.1-flash-lite-image',
     ];
 
     let response: any = null;
