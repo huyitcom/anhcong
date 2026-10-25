@@ -8,6 +8,7 @@ import {
   ImageIcon,
   Trash2,
   RefreshCw,
+  Copy,
 } from 'lucide-react';
 import { collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -38,7 +39,9 @@ export const RenderHistoryModal: React.FC<RenderHistoryModalProps> = ({
     title: string;
     resolution?: string;
     time?: string;
+    prompt?: string;
   } | null>(null);
+  const [copiedToast, setCopiedToast] = useState(false);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -85,6 +88,7 @@ export const RenderHistoryModal: React.FC<RenderHistoryModalProps> = ({
     resolution: string;
     timestamp: string;
     source: 'local' | 'cloud';
+    prompt?: string;
   }> = [];
 
   const seenUrls = new Set<string>();
@@ -100,6 +104,7 @@ export const RenderHistoryModal: React.FC<RenderHistoryModalProps> = ({
         resolution: item.resolution,
         timestamp: item.timestamp,
         source: 'local',
+        prompt: item.prompt,
       });
     }
   });
@@ -116,6 +121,7 @@ export const RenderHistoryModal: React.FC<RenderHistoryModalProps> = ({
         resolution: f.resolution || '1K',
         timestamp: f.timestamp || '',
         source: 'cloud',
+        prompt: f.prompt,
       });
     }
   });
@@ -238,6 +244,7 @@ export const RenderHistoryModal: React.FC<RenderHistoryModalProps> = ({
                             title: item.templateName,
                             resolution: item.resolution,
                             time: item.timestamp,
+                            prompt: item.prompt,
                           })
                         }
                         className="w-full py-1.5 px-2 bg-stone-800/90 hover:bg-stone-700 text-white rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm cursor-pointer transition"
@@ -318,16 +325,56 @@ export const RenderHistoryModal: React.FC<RenderHistoryModalProps> = ({
             </div>
 
             {/* Modal Image Display */}
-            <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-black">
+            <div
+              onClick={(e) => {
+                if (e.shiftKey && selectedPreview.prompt) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigator.clipboard.writeText(selectedPreview.prompt);
+                  setCopiedToast(true);
+                  setTimeout(() => setCopiedToast(false), 2500);
+                }
+              }}
+              title={selectedPreview.prompt ? "Đè phím Shift + Click vào ảnh để sao chép câu lệnh Prompt gốc!" : undefined}
+              className="flex-1 overflow-auto p-4 flex items-center justify-center bg-black relative group cursor-pointer"
+            >
               <img
                 src={selectedPreview.imageUrl}
                 alt={selectedPreview.title}
                 className="max-h-[65vh] w-auto max-w-full object-contain rounded-xl shadow-lg border border-white/5"
               />
+              {selectedPreview.prompt && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-xs text-stone-200 text-[11px] px-3 py-1 rounded-full border border-white/10 flex items-center gap-1.5 pointer-events-none opacity-80 group-hover:opacity-100 transition">
+                  <Copy className="w-3.5 h-3.5 text-sky-400" />
+                  <span>Đè <b>Shift + Click</b> để copy Prompt gốc</span>
+                </div>
+              )}
+              {copiedToast && (
+                <div className="absolute inset-0 bg-black/80 flex items-center justify-center p-4 z-20">
+                  <div className="bg-emerald-600 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-lg flex items-center gap-2">
+                    <Check className="w-4 h-4" />
+                    <span>Đã sao chép câu lệnh Prompt gốc!</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Modal Footer Actions */}
-            <div className="p-3 sm:p-4 border-t border-stone-800 bg-stone-900 flex items-center justify-end gap-2.5 shrink-0">
+            <div className="p-3 sm:p-4 border-t border-stone-800 bg-stone-900 flex items-center justify-end gap-2.5 shrink-0 flex-wrap">
+              {selectedPreview.prompt && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(selectedPreview.prompt!);
+                    setCopiedToast(true);
+                    setTimeout(() => setCopiedToast(false), 2500);
+                  }}
+                  className="px-3.5 py-2 bg-purple-900/40 hover:bg-purple-800/60 text-purple-200 border border-purple-500/40 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Copy className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Copy Prompt Gốc</span>
+                </button>
+              )}
               {onSelectImage && (
                 <button
                   onClick={() => {

@@ -15,6 +15,7 @@ interface PosterCanvasProps {
   onOpenCropModal: (slot: FrameSlot, index: number) => void;
   onOpenAIBackground?: (slotIndex: number) => void;
   posterRef: React.RefObject<HTMLDivElement | null>;
+  isExporting?: boolean;
 }
 
 export const PosterCanvas: React.FC<PosterCanvasProps> = ({
@@ -29,6 +30,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
   onOpenCropModal,
   onOpenAIBackground,
   posterRef,
+  isExporting = false,
 }) => {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [panningIndex, setPanningIndex] = useState<number | null>(null);
@@ -251,8 +253,8 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
         onDrop={(e) => handleDropOnSlot(index, e)}
         onPointerDown={(e) => handleSlotPointerDown(index, e)}
         className={`relative group overflow-hidden select-none transition-shadow duration-150 ${
-          activeSlotIndex === index ? 'ring-2 ring-sky-500 ring-offset-1 z-10' : ''
-        } ${isPanningThis ? 'cursor-grabbing ring-2 ring-sky-400' : isFilled ? 'cursor-grab' : 'cursor-pointer'} ${className}`}
+          !isExporting && activeSlotIndex === index ? 'ring-2 ring-sky-500 ring-offset-1 z-10' : ''
+        } ${!isExporting && isPanningThis ? 'cursor-grabbing ring-2 ring-sky-400' : isFilled ? 'cursor-grab' : 'cursor-pointer'} ${className}`}
         style={{
           borderRadius: className.includes('rounded-t-full')
             ? '9999px 9999px 0 0'
@@ -271,8 +273,8 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
         />
 
         {/* Drag Over Visual Indicator for Desktop Files */}
-        {isDragOver && (
-          <div className="absolute inset-0 z-40 bg-sky-500/25 border-2 border-dashed border-sky-500 rounded-lg flex flex-col items-center justify-center gap-1.5 p-2 backdrop-blur-2xs animate-in fade-in duration-150 pointer-events-none">
+        {!isExporting && isDragOver && (
+          <div data-no-export="true" className="no-export absolute inset-0 z-40 bg-sky-500/25 border-2 border-dashed border-sky-500 rounded-lg flex flex-col items-center justify-center gap-1.5 p-2 backdrop-blur-2xs animate-in fade-in duration-150 pointer-events-none">
             <div className="w-9 h-9 rounded-full bg-white text-sky-600 flex items-center justify-center shadow-md animate-bounce">
               <Upload className="w-5 h-5" />
             </div>
@@ -297,33 +299,42 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
               }}
             />
 
-            {/* Quick Actions (top right) */}
-            <div className={`absolute top-2 right-2 flex items-center gap-1.5 transition-opacity duration-150 pointer-events-auto ${activeSlotIndex === index ? 'opacity-100' : 'opacity-0 lg:group-hover:opacity-100'}`}>
-              <button
-                type="button"
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenCropModal(slot, index);
-                }}
-                className="flex items-center gap-1 bg-white/95 hover:bg-white text-stone-900 text-[11px] font-semibold px-2 py-1.5 rounded-lg shadow-md transition scale-95 hover:scale-100 cursor-pointer backdrop-blur-xs"
-                title="Chỉnh sửa thu phóng & góc xoay"
+            {/* Quick Actions (top right) - Sửa & Đổi (Completely hidden during export) */}
+            {!isExporting && (
+              <div
+                data-no-export="true"
+                className={`no-export absolute top-2 right-2 flex items-center gap-1.5 transition-opacity duration-150 pointer-events-auto ${
+                  activeSlotIndex === index ? 'opacity-100' : 'opacity-0 lg:group-hover:opacity-100'
+                }`}
               >
-                <Sliders className="w-3.5 h-3.5 text-sky-600" />
-                <span>Sửa</span>
-              </button>
+                <button
+                  type="button"
+                  data-no-export="true"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenCropModal(slot, index);
+                  }}
+                  className="no-export flex items-center gap-1 bg-white/95 hover:bg-white text-stone-900 text-[11px] font-semibold px-2 py-1.5 rounded-lg shadow-md transition scale-95 hover:scale-100 cursor-pointer backdrop-blur-xs"
+                  title="Chỉnh sửa thu phóng & góc xoay"
+                >
+                  <Sliders className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Sửa</span>
+                </button>
 
-              <label
-                htmlFor={`file-input-${index}`}
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
-                className="flex items-center gap-1 bg-stone-900/90 hover:bg-black text-white text-[11px] font-semibold px-2 py-1.5 rounded-lg shadow-md transition cursor-pointer scale-95 hover:scale-100 backdrop-blur-xs"
-                title="Tải ảnh mới từ thiết bị"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>Đổi</span>
-              </label>
-            </div>
+                <label
+                  htmlFor={`file-input-${index}`}
+                  data-no-export="true"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                  className="no-export flex items-center gap-1 bg-stone-900/90 hover:bg-black text-white text-[11px] font-semibold px-2 py-1.5 rounded-lg shadow-md transition cursor-pointer scale-95 hover:scale-100 backdrop-blur-xs"
+                  title="Tải ảnh mới từ thiết bị"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Đổi</span>
+                </label>
+              </div>
+            )}
           </div>
         ) : (
           <label
@@ -479,21 +490,24 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
             <div className="w-full h-full relative">
               {renderSlot(0, 'w-full h-full absolute inset-0')}
 
-              {/* Quick AI Background Action Floating Badge */}
-              <div className="absolute top-3 left-3 z-20 flex items-center gap-2">
-                <button
-                  type="button"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onOpenAIBackground) onOpenAIBackground(0);
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/85 hover:bg-stone-950 text-white text-xs font-semibold rounded-full shadow-lg backdrop-blur-md transition transform hover:scale-105 cursor-pointer border border-white/20 active:scale-95"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
-                  <span>Ghép Phông AI</span>
-                </button>
-              </div>
+              {/* Quick AI Background Action Floating Badge (Hidden during export) */}
+              {!isExporting && (
+                <div data-no-export="true" className="no-export absolute top-3 left-3 z-20 flex items-center gap-2">
+                  <button
+                    type="button"
+                    data-no-export="true"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onOpenAIBackground) onOpenAIBackground(0);
+                    }}
+                    className="no-export flex items-center gap-1.5 px-3 py-1.5 bg-stone-900/85 hover:bg-stone-950 text-white text-xs font-semibold rounded-full shadow-lg backdrop-blur-md transition transform hover:scale-105 cursor-pointer border border-white/20 active:scale-95"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                    <span>Ghép Phông AI</span>
+                  </button>
+                </div>
+              )}
 
               {/* Elegant Text Overlay (Conditionally rendered when showText !== false) */}
               {textConfig.showText !== false && (

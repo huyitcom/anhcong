@@ -52,12 +52,27 @@ export function useBackgroundTemplates() {
     return () => unsub();
   }, []);
 
+  // Helper to extract timestamp in ms from various formats (Firestore Timestamp, Date, or number)
+  const extractMs = (val: any): number | null => {
+    if (!val) return null;
+    if (typeof val.toMillis === 'function') return val.toMillis();
+    if (typeof val.seconds === 'number') return val.seconds * 1000;
+    if (typeof val === 'number') return val;
+    if (val instanceof Date) return val.getTime();
+    return null;
+  };
+
   // Merge static templates with Firestore custom/overrides
-  // If Firestore has items, matching IDs override static; additional IDs are appended;
-  // If an item in Firestore has isActive === false, it's marked as inactive.
+  // Order: MỚI XUẤT HIỆN TRƯỚC, CŨ XUẤT HIỆN SAU (Newest templates first, oldest last)
   const mergedTemplates: ExtendedBackgroundTemplate[] = (() => {
+    const staticOrderMap = new Map<string, number>();
+    staticTemplates.forEach((st, idx) => {
+      staticOrderMap.set(st.id, idx);
+    });
+
     if (firestoreTemplates.length === 0) {
-      return staticTemplates.map((t, index) => ({
+      // Reverse static templates so newer templates appear first
+      return [...staticTemplates].reverse().map((t, index) => ({
         ...t,
         order: index,
         isActive: true,
@@ -73,57 +88,107 @@ export function useBackgroundTemplates() {
     const result: ExtendedBackgroundTemplate[] = [];
     const visitedIds = new Set<string>();
 
-    // First process static templates in original order
-    staticTemplates.forEach((st, idx) => {
-      visitedIds.add(st.id);
-      if (firestoreMap.has(st.id)) {
-        const fsItem = firestoreMap.get(st.id)!;
-        result.push({
-          ...st,
-          ...fsItem,
-          order: fsItem.order ?? idx,
-          isActive: fsItem.isActive !== false,
-          isCustom: false,
-        });
-      } else {
-        result.push({
-          ...st,
-          order: idx,
-          isActive: true,
-          isCustom: false,
-        });
-      }
-    });
-
-    // Then append any newly created custom templates from Firestore
+    // 1. Process custom templates from Firestore (not in static list)
     firestoreTemplates.forEach((fsItem) => {
-      if (!visitedIds.has(fsItem.id)) {
+      const isStatic = staticOrderMap.has(fsItem.id);
+      if (!isStatic) {
+        visitedIds.add(fsItem.id);
         result.push({
           ...fsItem,
-          order: fsItem.order ?? result.length,
           isActive: fsItem.isActive !== false,
           isCustom: true,
         });
       }
     });
 
-    // Sort by order
-    result.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    // 2. Process static templates (with any overrides from Firestore) in reverse order
+    [...staticTemplates].reverse().forEach((st) => {
+      visitedIds.add(st.id);
+      if (firestoreMap.has(st.id)) {
+        const fsItem = firestoreMap.get(st.id)!;
+        result.push({
+          ...st,
+          ...fsItem,
+          isActive: fsItem.isActive !== false,
+          isCustom: false,
+        });
+      } else {
+        result.push({
+          ...st,
+          isActive: true,
+          isCustom: false,
+        });
+      }
+    });
+
+    // 3. Fallback for any other items
+    firestoreTemplates.forEach((fsItem) => {
+      if (!visitedIds.has(fsItem.id)) {
+        visitedIds.add(fsItem.id);
+        result.push({
+          ...fsItem,
+          isActive: fsItem.isActive !== false,
+          isCustom: true,
+        });
+      }
+    });
+
+    // Scoring function for sorting: NEWEST FIRST (higher score = appears earlier)
+    const getTemplateScore = (tmpl: ExtendedBackgroundTemplate): number => {
+      // 1. Explicit createdAt has highest authority
+      const createdMs = extractMs(tmpl.createdAt);
+      if (createdMs !== null) return createdMs;
+
+      // 2. Explicit updatedAt
+      const updatedMs = extractMs(tmpl.updatedAt);
+      if (updatedMs !== null) return updatedMs;
+
+      // 3. Timestamp inside ID: e.g. custom-template-1729123456789
+      const matchTs = tmpl.id?.match(/(\d{6,14})$/);
+      if (matchTs) {
+        const parsed = parseInt(matchTs[1], 10);
+        if (!isNaN(parsed)) {
+          if (parsed > 1e11) return parsed; // 13-digit ms
+          if (parsed > 1e8) return parsed * 1000; // 10-digit sec
+          if (parsed > 1000) return 1700000000000 + parsed;
+        }
+      }
+
+      // 4. Custom templates created in Firestore without explicit timestamp
+      if (tmpl.isCustom) {
+        return 1600000000000 + (tmpl.order ?? 0);
+      }
+
+      // 5. Static templates: higher index in staticTemplates = newer
+      const staticIdx = staticOrderMap.get(tmpl.id) ?? 0;
+      return 1000000000000 + staticIdx;
+    };
+
+    // Sort descending: highest score (newest) first!
+    result.sort((a, b) => getTemplateScore(b) - getTemplateScore(a));
+
+    // Re-index order property
+    result.forEach((item, index) => {
+      item.order = index;
+    });
+
     return result;
   })();
 
-  // Filter only active templates for user view / picker
+  // Filter only active templates for user view / picker (preserving newest-first order)
   const activeTemplates = mergedTemplates.filter((t) => t.isActive !== false);
 
   // Admin action: Save/Update template
   const saveTemplate = async (tmpl: Partial<ExtendedBackgroundTemplate> & { id: string }) => {
     try {
       const docRef = doc(db, 'aiBackgroundTemplates', tmpl.id);
+      const existing = firestoreTemplates.find((t) => t.id === tmpl.id);
       await setDoc(
         docRef,
         {
           ...tmpl,
           isActive: tmpl.isActive !== false,
+          createdAt: existing?.createdAt || tmpl.createdAt || serverTimestamp(),
           updatedAt: serverTimestamp(),
         },
         { merge: true }

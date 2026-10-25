@@ -4,6 +4,9 @@ export interface BackgroundTemplate {
   name_vn: string;
   thumbnailUrl: string;
   prompt: string;
+  promptPortrait?: string;
+  promptFullBody?: string;
+  bgDescription?: string;
   category?: 'wedding-arch' | 'indoor-studio' | 'nature-outdoor' | 'art-luxury';
 }
 
@@ -309,6 +312,68 @@ The final result must look like a genuine professional wedding photograph captur
 
 export function createMasterPrompt(backgroundDescription: string): string {
   return MASTER_PROMPT_TEMPLATE.replace(
+    '[INSERT BACKGROUND DESCRIPTION HERE]',
+    backgroundDescription.trim()
+  );
+}
+
+export const PORTRAIT_PROMPT_TEMPLATE = `ROLE: High-End Wedding Portrait Photographer and Master Retoucher.
+TASK: Photorealistic Wedding Background Replacement - PORTRAIT & CLOSE-UP MODE.
+Keep the original subjects 100% intact, preserving their exact faces, expressions, hair, and clothing.
+
+[CAMERA & OPTICAL RULES - EXTREME PORTRAIT BOKEH]
+- Lens: 85mm - 105mm portrait prime lens at f/1.2 - f/1.4 aperture.
+- Depth of Field: Extremely shallow depth of field.
+- Background Treatment: The background MUST dissolve into a dreamy, creamy, smooth optical bokeh blur with soft circular light orbs.
+- DO NOT render sharp architectural edges, sharp walls, sharp pillars, or sharp flowers.
+- The environment serves strictly as an elegant, atmospheric color-and-light backdrop.
+- The bride and groom must pop out cleanly with cinematic separation and soft warm rim lighting.
+
+[NEW BACKGROUND SCENE]
+Replace the original background with:
+[INSERT BACKGROUND DESCRIPTION HERE]
+(Render this scene purely as soft, glowing silhouettes, atmospheric haze, and creamy optical blur matching the f/1.2 aperture rules above. NO sharp background architectural details).
+
+[SUBJECT PRESERVATION]
+- 100% preserve identity, face, eyes, smile, skin texture, hairstyle, accessories, and visible clothing.
+- Do NOT alter face proportions, do NOT beautify or change expressions.
+- Seamless edge blending around hair strands and veil. No artificial cutout glow.
+
+[STRICT NEGATIVE CONSTRAINTS]
+sharp background behind subjects, sharp architectural lines, distinct background buildings, extra people in background, bystanders, ghost figures, duplicate bride, duplicate groom, changed faces, fake edges, CGI.`;
+
+export const FULLBODY_PROMPT_TEMPLATE = `ROLE: High-End Wedding Photographer and Master Retoucher.
+TASK: Photorealistic Wedding Background Replacement - FULL-BODY & ENVIRONMENTAL MODE.
+Keep the original subjects 100% intact, preserving their exact faces, bodies, poses, dresses, and shoes.
+
+[CAMERA & PERSPECTIVE RULES - ENVIRONMENTAL DEPTH]
+- Lens: 50mm environmental lens at f/4.0 - f/5.6 aperture.
+- Depth of Field: Moderate, realistic environmental depth of field. The background scene has clear spatial depth, realistic perspective, and readable ambiance.
+- Ground Integration: Ensure realistic ground contact (grass, stone pavers, parquet, or garden path). Create authentic soft contact shadows directly beneath the subjects' shoes, feet, or dress hem. Subjects MUST NOT appear floating.
+
+[NEW BACKGROUND SCENE]
+Replace the original background with:
+[INSERT BACKGROUND DESCRIPTION HERE]
+- Create realistic spatial distance between the subjects and background architectural structures.
+- Beautiful, natural lighting matching the original subjects' exposure and color temperature.
+- Empty private scene: Absolutely NO extra people, NO bystanders, NO secondary wedding figures in the background.
+
+[SUBJECT PRESERVATION]
+- 100% preserve identity, face, pose, clothing, jewelry, dress train, and feet.
+- Do NOT invent or alter visible limbs. Seamless edge blending without halo.
+
+[STRICT NEGATIVE CONSTRAINTS]
+floating subjects, missing shadows under feet, extra people, background bystanders, ghost figures, duplicate bride, duplicate groom, distorted proportions, changed faces, artificial cutout, CGI, 3D render.`;
+
+export function createPortraitPrompt(backgroundDescription: string): string {
+  return PORTRAIT_PROMPT_TEMPLATE.replace(
+    '[INSERT BACKGROUND DESCRIPTION HERE]',
+    backgroundDescription.trim()
+  );
+}
+
+export function createFullBodyPrompt(backgroundDescription: string): string {
+  return FULLBODY_PROMPT_TEMPLATE.replace(
     '[INSERT BACKGROUND DESCRIPTION HERE]',
     backgroundDescription.trim()
   );

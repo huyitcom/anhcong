@@ -17,6 +17,9 @@ import {
   PlusCircle,
   CheckCircle2,
   Clock,
+  User,
+  Users,
+  Copy,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { FrameSlot } from '../types';
@@ -99,11 +102,14 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
   const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
 
   // Generation & Quality States
+  const [framingMode, setFramingMode] = useState<'portrait' | 'fullbody'>('portrait');
   const [selectedResolution, setSelectedResolution] = useState<'1K' | '2K' | '4K'>('2K');
   const [generatedResolution, setGeneratedResolution] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generationStep, setGenerationStep] = useState<number>(1);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [lastUsedPrompt, setLastUsedPrompt] = useState<string>('');
+  const [copiedPromptSuccess, setCopiedPromptSuccess] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isQuotaError, setIsQuotaError] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'result' | 'compare'>('result');
@@ -129,6 +135,11 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
           el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
       }, 150);
+    } else if (activeTemplates.length > 0) {
+      setSelectedTemplateId((prev) => {
+        const exists = activeTemplates.some((t) => t.id === prev);
+        return exists && prev !== 'floral-arch-door' ? prev : activeTemplates[0].id;
+      });
     }
   }, [initialSlotIndex, initialTemplateId, isOpen, activeTemplates]);
 
@@ -152,6 +163,11 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
   const selectedTemplate =
     activeTemplates.find((t) => t.id === selectedTemplateId) ||
     activeTemplates[0];
+
+  const hasPortraitPrompt = !!(selectedTemplate?.promptPortrait && selectedTemplate.promptPortrait.trim().length > 0);
+  const hasFullBodyPrompt = !!(selectedTemplate?.promptFullBody && selectedTemplate.promptFullBody.trim().length > 0);
+  const hasBasePrompt = !!(selectedTemplate?.prompt && selectedTemplate.prompt.trim().length > 0);
+  const hasBothPrompts = hasPortraitPrompt && (hasFullBodyPrompt || hasBasePrompt);
 
   const handleFileProcess = (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -262,6 +278,38 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
 
       const clientApiKey = (((import.meta as any).env?.VITE_GEMINI_API_KEY as string) || '').trim();
 
+      // Select appropriate prompt:
+      // Quy tắc: Nếu nhập đủ 2 phần (Chân dung & Toàn thân) thì áp dụng theo framingMode.
+      // Nếu chỉ nhập Toàn thân (Chân dung để trống) thì chỉ chạy 1 phần Prompt Toàn Thân thôi.
+      const hasPortrait = !!(selectedTemplate?.promptPortrait && selectedTemplate.promptPortrait.trim().length > 0);
+      const hasFullBody = !!(selectedTemplate?.promptFullBody && selectedTemplate.promptFullBody.trim().length > 0);
+      const basePrompt = (selectedTemplate?.prompt || '').trim();
+
+      let effectivePrompt = '';
+      if (hasPortrait && hasFullBody) {
+        // Có đủ 2 phần: áp dụng theo kiểu ảnh chọn
+        effectivePrompt = framingMode === 'portrait'
+          ? selectedTemplate!.promptPortrait!.trim()
+          : selectedTemplate!.promptFullBody!.trim();
+      } else if (hasFullBody) {
+        // Chỉ nhập Toàn thân: chỉ chạy Toàn thân
+        effectivePrompt = selectedTemplate!.promptFullBody!.trim();
+      } else if (hasPortrait) {
+        // Chỉ nhập Chân dung: chạy Chân dung
+        effectivePrompt = selectedTemplate!.promptPortrait!.trim();
+      } else {
+        effectivePrompt = basePrompt;
+      }
+
+      // Safeguard: Nếu trong prompt còn sót cụm [BỐI CẢNH], tự động thay thế bằng mô tả hoặc tên mẫu
+      const boiCanhRegex = /\[(?:BỐI\s*CẢNH|bối\s*cảnh|Bối\s*Cảnh|BOI\s*CANH|boi\s*canh|BỐI_CẢNH|BOI_CANH|INSERT\s*BACKGROUND\s*DESCRIPTION\s*HERE)\]/gi;
+      if (boiCanhRegex.test(effectivePrompt)) {
+        const fallbackDesc = selectedTemplate?.name_vn || 'A romantic wedding setting';
+        effectivePrompt = effectivePrompt.replace(boiCanhRegex, fallbackDesc);
+      }
+
+      setLastUsedPrompt(effectivePrompt);
+
       const res = await fetch('/api/ai/replace-background', {
         method: 'POST',
         headers: {
@@ -270,7 +318,8 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
         },
         body: JSON.stringify({
           image: optimizedImage,
-          prompt: selectedTemplate?.prompt || '',
+          prompt: effectivePrompt,
+          framingMode,
           templateName: selectedTemplate?.name_vn,
           category: selectedTemplate?.category,
           aspectRatio: chosenAspectRatio,
@@ -295,21 +344,24 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
       // Generate compact thumbnail for fast and safe Firestore logging (<20KB)
       const thumbUrl = await createImageThumbnail(finalImageUrl, 260, 0.65);
 
+      const templateLabel = `${selectedTemplate?.name_vn || 'Phông cưới'} (${framingMode === 'portrait' ? 'Chân dung' : 'Toàn thân'})`;
+
       // Save to client-side local history for instant retrieval anytime
       saveRenderToHistory({
         imageUrl: finalImageUrl,
         thumbnailUrl: thumbUrl || cloudOrStaticUrl,
-        templateName: selectedTemplate.name_vn,
+        templateName: templateLabel,
         resolution: selectedResolution,
         timestamp: new Date().toISOString(),
         type: 'background',
+        prompt: effectivePrompt,
       });
 
       // Deduct credits and log to Firestore with image URL / thumbnail
       await consumeCredits(
         cost,
         selectedResolution,
-        selectedTemplate.name_vn,
+        templateLabel,
         cloudOrStaticUrl,
         thumbUrl
       );
@@ -579,16 +631,56 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
                     </div>
 
                     {viewMode === 'result' ? (
-                      <div className="relative w-full max-w-[390px] aspect-[3/4] rounded-2xl overflow-hidden shadow-xl border-2 border-emerald-500 bg-black">
+                      <div
+                        onClick={(e) => {
+                          if (e.shiftKey) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const promptToCopy = lastUsedPrompt || (selectedTemplate?.promptFullBody || selectedTemplate?.prompt || '');
+                            if (promptToCopy) {
+                              navigator.clipboard.writeText(promptToCopy);
+                              setCopiedPromptSuccess(true);
+                              setTimeout(() => setCopiedPromptSuccess(false), 3000);
+                            }
+                          }
+                        }}
+                        title="Đè phím Shift + Click vào ảnh để sao chép câu lệnh Prompt gốc!"
+                        className="relative w-full max-w-[390px] aspect-[3/4] rounded-2xl overflow-hidden shadow-xl border-2 border-emerald-500 bg-black cursor-pointer group"
+                      >
                         <img
                           src={generatedImage}
                           alt="AI Background Result"
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-200"
                         />
+
+                        {/* Top badges */}
                         <div className="absolute top-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md flex items-center gap-1">
                           <Check className="w-3 h-3" />
                           <span>AI {generatedResolution}</span>
                         </div>
+
+                        {/* Shift + Click hint badge */}
+                        <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between pointer-events-none">
+                          <span className="bg-black/75 backdrop-blur-xs text-stone-200 text-[10px] px-2 py-0.5 rounded-md border border-white/10 flex items-center gap-1 opacity-80 group-hover:opacity-100 transition">
+                            <Copy className="w-3 h-3 text-sky-400" />
+                            <span>Đè <b>Shift + Click</b> để copy Prompt gốc</span>
+                          </span>
+                        </div>
+
+                        {/* Toast when Shift+Click copy succeeds */}
+                        {copiedPromptSuccess && (
+                          <div className="absolute inset-0 bg-black/80 backdrop-blur-xs flex flex-col items-center justify-center p-4 text-center z-30 animate-fadeIn">
+                            <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mb-2">
+                              <Check className="w-5 h-5 stroke-[2.5]" />
+                            </div>
+                            <p className="font-bold text-sm text-white mb-1">
+                              Đã sao chép Prompt gốc!
+                            </p>
+                            <p className="text-[11px] text-stone-300 max-w-[260px] line-clamp-2 font-mono">
+                              {lastUsedPrompt.slice(0, 100)}...
+                            </p>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="w-full grid grid-cols-2 gap-2">
@@ -602,15 +694,37 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
                             Ảnh gốc
                           </span>
                         </div>
-                        <div className="aspect-[3/4] rounded-xl overflow-hidden border-2 border-emerald-500 relative shadow-sm">
+                        <div
+                          onClick={(e) => {
+                            if (e.shiftKey) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const promptToCopy = lastUsedPrompt || (selectedTemplate?.promptFullBody || selectedTemplate?.prompt || '');
+                              if (promptToCopy) {
+                                navigator.clipboard.writeText(promptToCopy);
+                                setCopiedPromptSuccess(true);
+                                setTimeout(() => setCopiedPromptSuccess(false), 3000);
+                              }
+                            }
+                          }}
+                          title="Đè phím Shift + Click vào ảnh để sao chép câu lệnh Prompt gốc!"
+                          className="aspect-[3/4] rounded-xl overflow-hidden border-2 border-emerald-500 relative shadow-sm cursor-pointer group"
+                        >
                           <img
                             src={generatedImage}
                             alt="AI"
                             className="w-full h-full object-cover"
                           />
                           <span className="absolute bottom-1.5 left-1.5 bg-emerald-600 text-white text-[10px] font-semibold px-2 py-0.5 rounded-md">
-                            Nền AI mới
+                            Nền AI mới (Shift+Click: Copy Prompt)
                           </span>
+                          {copiedPromptSuccess && (
+                            <div className="absolute inset-0 bg-black/80 flex items-center justify-center text-center p-2 z-30">
+                              <span className="text-emerald-400 text-xs font-bold flex items-center gap-1">
+                                <Check className="w-4 h-4" /> Đã copy prompt!
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}
@@ -630,6 +744,21 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
                         className="p-2.5 border border-stone-300 hover:bg-white text-stone-700 rounded-xl transition cursor-pointer"
                       >
                         <Download className="w-4 h-4" />
+                      </button>
+                      {/* Explicit button to also copy prompt directly */}
+                      <button
+                        onClick={() => {
+                          const promptToCopy = lastUsedPrompt || (selectedTemplate?.promptFullBody || selectedTemplate?.prompt || '');
+                          if (promptToCopy) {
+                            navigator.clipboard.writeText(promptToCopy);
+                            setCopiedPromptSuccess(true);
+                            setTimeout(() => setCopiedPromptSuccess(false), 3000);
+                          }
+                        }}
+                        title="Sao chép câu lệnh prompt gốc đã render ra ảnh này"
+                        className="p-2.5 border border-stone-300 hover:bg-white text-stone-700 rounded-xl transition cursor-pointer"
+                      >
+                        <Copy className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -817,12 +946,60 @@ export const AIBackgroundModal: React.FC<AIBackgroundModalProps> = ({
                           <h4 className="font-bold text-xs text-stone-800 truncate">
                             {template.name_vn}
                           </h4>
+                          {template.promptPortrait && template.promptPortrait.trim().length > 0 && (
+                            <span className="inline-block mt-0.5 text-[9px] font-semibold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded-full border border-purple-200">
+                              2 Kiểu ảnh
+                            </span>
+                          )}
                         </div>
                       </div>
                     );
                   })}
                 </div>
               </div>
+
+              {/* Framing Mode: Chân dung vs Toàn thân - Mặc định ẩn, chỉ hiện khi mẫu có nhập cả 2 Prompt Chân Dung & Toàn Thân */}
+              {hasBothPrompts && (
+                <div className="shrink-0 bg-stone-50/90 border border-stone-200 rounded-2xl p-3 my-1.5 space-y-2 animate-fadeIn">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-purple-600" />
+                      <span className="text-xs font-bold text-stone-700">Kiểu ảnh (Chân dung / Toàn thân)</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5 w-full sm:w-auto">
+                      <button
+                        type="button"
+                        onClick={() => setFramingMode('portrait')}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                          framingMode === 'portrait'
+                            ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                            : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100'
+                        }`}
+                      >
+                        <User className="w-3.5 h-3.5" />
+                        <span>Chân dung (Xóa phông f/1.2)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFramingMode('fullbody')}
+                        className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                          framingMode === 'fullbody'
+                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
+                            : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100'
+                        }`}
+                      >
+                        <Users className="w-3.5 h-3.5" />
+                        <span>Toàn thân (Bối cảnh f/4.0)</span>
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-stone-500 italic">
+                    {framingMode === 'portrait'
+                      ? '✨ Ống kính 85mm f/1.2: Phông nền tan chảy vào bokeh mịn màng, tôn chủ thể sắc nét, không vẽ nét kiến trúc sắc nhọn.'
+                      : '🏛️ Ống kính 50mm f/4.0: Vẽ rõ nét không gian kiến trúc, cổng hoa, bối cảnh rộng và tạo bóng đổ tiếp xúc tự nhiên dưới chân.'}
+                  </p>
+                </div>
+              )}
 
               {/* Quality & Credit Costs Options */}
               <div className="shrink-0 bg-stone-50/90 border border-stone-200 rounded-2xl p-3 my-2 space-y-2">

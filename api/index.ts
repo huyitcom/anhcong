@@ -799,6 +799,7 @@ export function createExpressApp() {
         themePrompt,
         customPrompt,
         templateName,
+        framingMode,
         preserveFraming,
         aspectRatio,
         imageSize = '1K',
@@ -851,7 +852,7 @@ export function createExpressApp() {
         validImageSize = imageSize;
       }
 
-      console.log(`[AI Background Replacement] Starting generation with size: ${validImageSize}, aspect: ${validAspectRatio} (detected: ${detectedRatio})`);
+      console.log(`[AI Background Replacement] Starting generation with size: ${validImageSize}, aspect: ${validAspectRatio} (detected: ${detectedRatio}), framingMode: ${framingMode || 'default'}`);
 
       const chosenTheme = templateName || themeTitle || 'Phong Cách Đám Cưới Sang Trọng';
       const promptDetails = prompt || customPrompt || themePrompt || 'A luxurious, elegant high-end wedding venue with soft cinematic warm lighting, romantic floral decorations, bokeh background, maintaining photographic realism.';
@@ -877,16 +878,30 @@ export function createExpressApp() {
 
       let finalPrompt = (prompt || customPrompt || themePrompt || '').trim();
       if (!finalPrompt || finalPrompt.length < 20) {
-        finalPrompt = `Professional Wedding Photo Retouching & Background Replacement:
+        if (framingMode === 'portrait') {
+          finalPrompt = `Professional Wedding Photo Retouching & Background Replacement (PORTRAIT BOKEH MODE):
 Keep the bride and groom exactly as they are in the original photo: preserve their faces, identities, expressions, hairstyles, poses, wedding outfits, flowers, and natural skin tones completely intact and razor sharp.${preserveFraming !== false ? ' Strictly preserve the original distance, scale, framing, and exact facial features of the couple.' : ''}
 Theme: "${chosenTheme}".
+Camera lens: 85mm f/1.2 portrait prime lens. EXTREME OPTICAL BOKEH blur. The background must dissolve into a dreamy, creamy blur with soft circular light orbs. DO NOT render sharp architectural details or sharp background flowers.
 Details: "${promptDetails}".
-Ensure natural lighting integration, matching color temperature, realistic shadows on the subjects, depth of field, and perfect edge blending around hair and veil. The final result must look like a high-end luxury editorial wedding photograph.`;
+Ensure natural warm golden rim lighting integration. Strictly NO extra people or bystanders in the background.`;
+        } else {
+          finalPrompt = `Professional Wedding Photo Retouching & Background Replacement (FULL-BODY ENVIRONMENTAL MODE):
+Keep the bride and groom exactly as they are in the original photo: preserve their faces, identities, expressions, hairstyles, poses, wedding outfits, full visible bodies, and shoes completely intact and razor sharp.${preserveFraming !== false ? ' Strictly preserve the original distance, scale, framing, and exact facial features of the couple.' : ''}
+Theme: "${chosenTheme}".
+Camera lens: 50mm f/4.0 environmental lens. Clear spatial perspective and natural contact shadows directly beneath their feet on the ground.
+Details: "${promptDetails}".
+Ensure natural lighting integration, matching color temperature, realistic shadows on the ground, depth of field, and perfect edge blending. Strictly NO extra people or bystanders in the background.`;
+        }
       }
 
+      // Prioritize High-Quality Photographic models (gemini-nano-banana-2.1, gemini-3-pro-image)
+      // to ensure realistic optical bokeh, organic textures, and natural depth of field matching Gemini Web.
+      // Fallback to flash-lite only if higher tier models encounter quota limits.
       const candidateModels = [
-        'gemini-3.1-flash-lite-image',
         'gemini-nano-banana-2.1',
+        'gemini-3-pro-image',
+        'gemini-3.1-flash-lite-image',
       ];
 
       let response: any = null;

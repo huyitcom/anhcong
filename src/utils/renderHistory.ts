@@ -6,6 +6,7 @@ export interface RenderHistoryItem {
   resolution: string;
   timestamp: string;
   type: 'background' | 'lighting' | 'shadow';
+  prompt?: string;
 }
 
 const STORAGE_KEY = 'ai_render_history_v1';

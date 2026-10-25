@@ -1,1 +1,16 @@
 @import "tailwindcss";
+
+/* Export Mode: Completely hide editing controls and selection outlines during canvas capture */
+.export-mode .no-export,
+.export-mode [data-no-export="true"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
+.export-mode .ring-2,
+.export-mode .ring-sky-500,
+.export-mode .ring-sky-400 {
+  box-shadow: none !important;
+  outline: none !important;
+}

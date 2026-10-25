@@ -42,6 +42,7 @@ export default function App() {
 
   const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(null);
   const [editingSlot, setEditingSlot] = useState<{ slot: FrameSlot; index: number } | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Modals
   const [isBatchUploadOpen, setIsBatchUploadOpen] = useState(false);
@@ -196,6 +197,28 @@ export default function App() {
   // Get Canvas Image Data URL for Order Email Submission & High-Res Export (High-Resolution 300DPI JPEG)
   const handleGetDesignDataUrl = async (): Promise<string | null> => {
     if (!posterRef.current) return null;
+
+    // Temporarily activate export mode to hide all UI controls (buttons Sửa/Đổi, selection rings, drag indicators)
+    setIsExporting(true);
+    posterRef.current.classList.add('export-mode');
+
+    // Filter to strictly exclude any UI action buttons, overlays or controls from the captured canvas
+    const exportFilter = (node: Node) => {
+      if (node instanceof HTMLElement) {
+        if (
+          node.dataset?.noExport === 'true' ||
+          node.classList?.contains('no-export') ||
+          node.getAttribute('data-no-export') === 'true'
+        ) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    // Wait a brief tick for React state to re-render without editing controls
+    await new Promise((resolve) => setTimeout(resolve, 60));
+
     try {
       const { width: targetWidth } = getPrintDimensions(posterSettings.aspectRatio);
       const baseWidth = posterSettings.aspectRatio === '3:2' ? 820 : posterSettings.aspectRatio === '80:180' ? 520 : 560;
@@ -219,6 +242,7 @@ export default function App() {
         backgroundColor: posterSettings.bgColor || '#ffffff',
         cacheBust: true,
         fontEmbedCSS: fontEmbedCSS,
+        filter: exportFilter,
       });
 
       // Inject standard 300 DPI JFIF metadata so Photoshop & print tools detect 300 DPI immediately
@@ -241,12 +265,17 @@ export default function App() {
           quality: 0.90,
           backgroundColor: posterSettings.bgColor || '#ffffff',
           fontEmbedCSS: fontEmbedCSS,
+          filter: exportFilter,
         });
         return setDpiInJpegDataUrl(fallbackDataUrl, 300);
       } catch (fallbackErr) {
         console.error('Fallback export also failed:', fallbackErr);
         return null;
       }
+    } finally {
+      // Restore UI controls and normal editing mode
+      posterRef.current?.classList.remove('export-mode');
+      setIsExporting(false);
     }
   };
 
@@ -285,6 +314,7 @@ export default function App() {
               onOpenCropModal={(slot, index) => setEditingSlot({ slot, index })}
               onOpenAIBackground={handleOpenAIBackground}
               posterRef={posterRef}
+              isExporting={isExporting}
             />
 
             <p className="text-xs text-stone-500 mt-4 mb-2 text-center">
