@@ -842,11 +842,13 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       let cloudinaryUrl = null;
       try {
         const clientUserId = req.body?.userId || req.body?.userEmail || "";
-        cloudinaryUrl = await uploadRenderToCloudinary(generatedImageUrl, {
+        const cPromise = uploadRenderToCloudinary(generatedImageUrl, {
           userId: clientUserId,
           templateName: chosenTheme,
           resolution: validImageSize
         });
+        const cTimeout = new Promise((resolve) => setTimeout(() => resolve(null), 1e3));
+        cloudinaryUrl = await Promise.race([cPromise, cTimeout]);
       } catch (cErr) {
         console.warn("[Cloudinary non-blocking upload error in Express]:", cErr);
       }
@@ -945,8 +947,9 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       const restorationPrompt = prompt && typeof prompt === "string" && prompt.trim().length > 0 ? prompt.trim() : LIGHTING_RESTORATION_PROMPT;
       console.log(`[AI Lighting Restoration] Calling Gemini model with prompt length ${restorationPrompt.length}...`);
       const candidateModels = [
-        "gemini-3.1-flash-lite-image",
-        "gemini-nano-banana-2.1"
+        "gemini-nano-banana-2.1",
+        "gemini-3-pro-image",
+        "gemini-3.1-flash-lite-image"
       ];
       let response = null;
       let lastError = null;
@@ -1025,11 +1028,13 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
       let cloudinaryUrl = null;
       try {
-        cloudinaryUrl = await uploadRenderToCloudinary(generatedImageUrl, {
+        const cPromise = uploadRenderToCloudinary(generatedImageUrl, {
           userId: req.body?.userId || req.headers["x-user-id"] || "anonymous",
           templateName: "cuu_sang_lighting_restore",
           resolution: validImageSize
         });
+        const cTimeout = new Promise((resolve) => setTimeout(() => resolve(null), 1e3));
+        cloudinaryUrl = await Promise.race([cPromise, cTimeout]);
       } catch (cErr) {
         console.warn("[Cloudinary Error]", cErr);
       }

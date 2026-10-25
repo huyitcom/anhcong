@@ -3,6 +3,9 @@ import path from 'path';
 import fs from 'fs';
 import { v2 as cloudinary } from 'cloudinary';
 
+// Configure maxDuration to 60s for Vercel serverless functions
+export const maxDuration = 60;
+
 const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'tq2yiygt';
 const API_KEY = process.env.CLOUDINARY_API_KEY || '831334161118296';
 const API_SECRET = process.env.CLOUDINARY_API_SECRET || 'OCijUGp73Y8KI1W1sP7OxHbH8Bo';
@@ -378,7 +381,7 @@ export default async function handler(req: any, res: any) {
         templateName: 'cuu_sang_lighting_restore',
         resolution: validImageSize,
       });
-      const cTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500));
+      const cTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1000));
       cloudinaryUrl = await Promise.race([cPromise, cTimeout]);
     } catch (cErr) {
       console.warn('[Cloudinary Error]', cErr);

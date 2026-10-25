@@ -15,6 +15,12 @@ export async function parseApiResponse<T = any>(response: Response): Promise<T> 
       );
     }
 
+    if (text.includes('FUNCTION_INVOCATION_TIMEOUT') || text.includes('Task timed out')) {
+      throw new Error(
+        'Vercel đã ngắt kết nối do quá thời gian chờ (FUNCTION_INVOCATION_TIMEOUT). Quá trình render ảnh 2K bằng Gemini cần khoảng 15-25 giây để hoàn thành. Cấu hình "maxDuration": 60 đã được cập nhật vào vercel.json. Bạn hãy Redeploy lại dự án trên Vercel để áp dụng thời gian chờ 60 giây nhé!'
+      );
+    }
+
     if (text.includes('FUNCTION_INVOCATION_FAILED')) {
       throw new Error(
         'Máy chủ Vercel báo lỗi thực thi (FUNCTION_INVOCATION_FAILED 500). Vui lòng kiểm tra tab Logs trên Vercel hoặc đảm bảo đã cài biến môi trường GEMINI_API_KEY cho cả Production & Preview rồi Redeploy.'
@@ -29,7 +35,7 @@ export async function parseApiResponse<T = any>(response: Response): Promise<T> 
       }
       if (response.status === 504 || response.status === 502) {
         throw new Error(
-          'Yêu cầu xử lý AI bị quá thời gian giới hạn (Timeout / 504 Gateway Timeout). Gemini cần 10-25 giây để tạo ảnh. File vercel.json đã được cấu hình maxDuration: 60s để khắc phục vấn đề này.'
+          'Yêu cầu xử lý AI bị quá thời gian giới hạn (504 Gateway Timeout). Gemini 2K cần 15-25 giây để vẽ chi tiết. File vercel.json đã được cấu hình maxDuration: 60s, hãy Redeploy lại trên Vercel để nhận cập nhật này.'
         );
       }
       throw new Error(`Máy chủ trả về phản hồi HTML lỗi (Mã ${response.status}). Vui lòng kiểm tra tab Logs trên Vercel.`);

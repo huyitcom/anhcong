@@ -9,6 +9,9 @@ import { GoogleGenAI } from '@google/genai';
 import { PayOS } from '@payos/node';
 import { v2 as cloudinary } from 'cloudinary';
 
+// Configure maxDuration to 60s for Vercel serverless function
+export const maxDuration = 60;
+
 const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'tq2yiygt';
 const API_KEY = process.env.CLOUDINARY_API_KEY || '831334161118296';
 const API_SECRET = process.env.CLOUDINARY_API_SECRET || 'OCijUGp73Y8KI1W1sP7OxHbH8Bo';
@@ -991,15 +994,17 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       const host = req.headers['x-forwarded-host'] || req.get('host');
       const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
 
-      // Upload to Cloudinary for permanent storage and admin inspection
+      // Upload to Cloudinary for permanent storage and admin inspection (non-blocking 1s race)
       let cloudinaryUrl: string | null = null;
       try {
         const clientUserId = req.body?.userId || req.body?.userEmail || '';
-        cloudinaryUrl = await uploadRenderToCloudinary(generatedImageUrl, {
+        const cPromise = uploadRenderToCloudinary(generatedImageUrl, {
           userId: clientUserId,
           templateName: chosenTheme,
           resolution: validImageSize,
         });
+        const cTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1000));
+        cloudinaryUrl = await Promise.race([cPromise, cTimeout]);
       } catch (cErr) {
         console.warn('[Cloudinary non-blocking upload error in Express]:', cErr);
       }
@@ -1127,8 +1132,9 @@ Ensure natural lighting integration, matching color temperature, realistic shado
       console.log(`[AI Lighting Restoration] Calling Gemini model with prompt length ${restorationPrompt.length}...`);
 
       const candidateModels = [
-        'gemini-3.1-flash-lite-image',
         'gemini-nano-banana-2.1',
+        'gemini-3-pro-image',
+        'gemini-3.1-flash-lite-image',
       ];
 
       let response: any = null;
@@ -1219,11 +1225,13 @@ Ensure natural lighting integration, matching color temperature, realistic shado
 
       let cloudinaryUrl: string | null = null;
       try {
-        cloudinaryUrl = await uploadRenderToCloudinary(generatedImageUrl, {
+        const cPromise = uploadRenderToCloudinary(generatedImageUrl, {
           userId: (req.body?.userId || req.headers['x-user-id'] || 'anonymous') as string,
           templateName: 'cuu_sang_lighting_restore',
           resolution: validImageSize,
         });
+        const cTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1000));
+        cloudinaryUrl = await Promise.race([cPromise, cTimeout]);
       } catch (cErr) {
         console.warn('[Cloudinary Error]', cErr);
       }

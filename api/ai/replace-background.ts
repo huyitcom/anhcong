@@ -3,6 +3,9 @@ import path from 'path';
 import fs from 'fs';
 import { v2 as cloudinary } from 'cloudinary';
 
+// Configure maxDuration to 60s for Vercel serverless functions (standard for Hobby/Pro)
+export const maxDuration = 60;
+
 const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'tq2yiygt';
 const API_KEY = process.env.CLOUDINARY_API_KEY || '831334161118296';
 const API_SECRET = process.env.CLOUDINARY_API_SECRET || 'OCijUGp73Y8KI1W1sP7OxHbH8Bo';
@@ -343,7 +346,7 @@ Ensure natural lighting integration, matching color temperature, realistic shado
     const host = req.headers['x-forwarded-host'] || req.headers['host'] || 'photobookvietnam.net';
     const staticUrl = `${protocol}://${host}/uploads/${aiFileName}`;
 
-    // Upload to Cloudinary for permanent storage (non-blocking, 3s timeout)
+    // Upload to Cloudinary for permanent storage (non-blocking, 1s quick-check timeout)
     let cloudinaryUrl: string | null = null;
     try {
       const activeUserId = userId || userEmail || (req.headers['x-user-id'] as string) || 'anonymous';
@@ -352,7 +355,7 @@ Ensure natural lighting integration, matching color temperature, realistic shado
         templateName: chosenTheme,
         resolution: validImageSize,
       });
-      const cTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3500));
+      const cTimeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1000));
       cloudinaryUrl = await Promise.race([cPromise, cTimeout]);
     } catch (cErr) {
       console.warn('[Cloudinary non-blocking upload error]:', cErr);
