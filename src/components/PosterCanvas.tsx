@@ -9,7 +9,7 @@ interface PosterCanvasProps {
   textConfig: TextConfig;
   posterSettings: PosterSettings;
   activeSlotIndex: number | null;
-  onSelectSlot: (index: number) => void;
+  onSelectSlot: (index: number | null) => void;
   onSlotImageChange: (index: number, imageUri: string) => void;
   onUpdateSlot?: (updated: FrameSlot) => void;
   onOpenCropModal: (slot: FrameSlot, index: number) => void;
@@ -145,11 +145,22 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
       }
     };
 
+    const handleGlobalPointerDown = (e: PointerEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      // Clicking anywhere outside a photo slot unselects the active frame
+      if (!target.closest('[data-slot-frame="true"]')) {
+        onSelectSlotRef.current(null);
+      }
+    };
+
+    window.addEventListener('pointerdown', handleGlobalPointerDown);
     window.addEventListener('pointermove', handleGlobalPointerMove);
     window.addEventListener('pointerup', handleGlobalPointerUp);
     window.addEventListener('pointercancel', handleGlobalPointerUp);
 
     return () => {
+      window.removeEventListener('pointerdown', handleGlobalPointerDown);
       window.removeEventListener('pointermove', handleGlobalPointerMove);
       window.removeEventListener('pointerup', handleGlobalPointerUp);
       window.removeEventListener('pointercancel', handleGlobalPointerUp);
@@ -240,6 +251,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
     return (
       <div
         key={slot.id || index}
+        data-slot-frame="true"
         onDragOver={(e) => {
           e.preventDefault();
           e.dataTransfer.dropEffect = 'copy';
@@ -252,7 +264,7 @@ export const PosterCanvas: React.FC<PosterCanvasProps> = ({
         }}
         onDrop={(e) => handleDropOnSlot(index, e)}
         onPointerDown={(e) => handleSlotPointerDown(index, e)}
-        className={`relative group overflow-hidden select-none transition-shadow duration-150 ${
+        className={`relative group overflow-hidden select-none ${
           !isExporting && activeSlotIndex === index ? 'ring-2 ring-sky-500 ring-offset-1 z-10' : ''
         } ${!isExporting && isPanningThis ? 'cursor-grabbing ring-2 ring-sky-400' : isFilled ? 'cursor-grab' : 'cursor-pointer'} ${className}`}
         style={{

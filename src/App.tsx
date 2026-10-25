@@ -198,7 +198,8 @@ export default function App() {
   const handleGetDesignDataUrl = async (): Promise<string | null> => {
     if (!posterRef.current) return null;
 
-    // Temporarily activate export mode to hide all UI controls (buttons Sửa/Đổi, selection rings, drag indicators)
+    // Temporarily activate export mode and unselect any active slot to hide all UI controls and selection rings
+    setActiveSlotIndex(null);
     setIsExporting(true);
     posterRef.current.classList.add('export-mode');
 
@@ -292,7 +293,10 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-stone-100 font-sans text-stone-900 selection:bg-sky-200 selection:text-sky-900">
       {/* Top Navbar */}
       <Navbar
-        onOpenOrderModal={() => setIsOrderModalOpen(true)}
+        onOpenOrderModal={() => {
+          setActiveSlotIndex(null);
+          setIsOrderModalOpen(true);
+        }}
         onResetAll={handleResetAll}
         onOpenBatchUpload={() => setIsBatchUploadOpen(true)}
       />

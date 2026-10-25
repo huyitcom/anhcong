@@ -8,9 +8,12 @@
   opacity: 0 !important;
 }
 
+.export-mode [data-slot-frame="true"],
 .export-mode .ring-2,
 .export-mode .ring-sky-500,
 .export-mode .ring-sky-400 {
+  transition: none !important;
   box-shadow: none !important;
   outline: none !important;
 }
+
